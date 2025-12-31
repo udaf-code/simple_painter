@@ -120,6 +120,10 @@ public class Main extends Application {
         colorPicker.setOnAction(e -> {
         	currentTool = Tool.SIMPLE;
         	});
+        sizeSlider.setOnMouseReleased(e -> {
+        	currentTool = Tool.SIMPLE;
+        	});
+
 
         lineBtn.setOnAction(e -> currentTool = Tool.LINE);
         rectBtn.setOnAction(e -> currentTool = Tool.RECT);
@@ -145,6 +149,11 @@ public class Main extends Application {
         if (e.getButton() != MouseButton.PRIMARY) return;
         startX = e.getX();
         startY = e.getY();
+        //!!!
+        lastX = e.getX();
+        lastY = e.getY();
+        //
+        pushUndo();
         System.out.println("мышь");
         // простое рисование
         if (currentTool == Tool.SIMPLE) {
@@ -199,7 +208,12 @@ public class Main extends Application {
         double x = e.getX();
         double y = e.getY();
 
-        if (currentTool == Tool.LINE) {
+        if (currentTool == Tool.SIMPLE) {
+        	pushUndo();
+            redoStack.clear();
+            tempSnapshot = null;
+        }
+        else if (currentTool == Tool.LINE) {
             restoreSnapshot(tempSnapshot);
             gc.setStroke(Color.BLACK);
             gc.setLineWidth(2);
