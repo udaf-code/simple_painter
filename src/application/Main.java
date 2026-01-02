@@ -143,17 +143,18 @@ public class Main extends Application {
 
         saveBtn.setOnAction(e -> saveToFile(stage));
         loadBtn.setOnAction(e -> loadFromFile(stage));
+        pushUndo();
     }
     
     private void onMousePressed(MouseEvent e) {
         if (e.getButton() != MouseButton.PRIMARY) return;
         startX = e.getX();
         startY = e.getY();
-        //!!!
+        //!!! потом переделать убрать лишнее привести логику к единому типу
         lastX = e.getX();
         lastY = e.getY();
         //
-        pushUndo();
+        //pushUndo();
         System.out.println("мышь");
         // простое рисование
         if (currentTool == Tool.SIMPLE) {
@@ -188,13 +189,19 @@ public class Main extends Application {
             eraseAt(x, y);
         } else if (currentTool == Tool.LINE) {
             restoreSnapshot(tempSnapshot);
-            gc.setStroke(Color.BLACK);
-            gc.setLineWidth(2);
+            // толщина линии и цвет из кнопок
+            gc.setStroke(colorPicker.getValue());
+            gc.setLineWidth(sizeSlider.getValue());
+            //gc.setStroke(Color.BLACK);
+            //gc.setLineWidth(2);
             gc.strokeLine(startX, startY, x, y);
         } else if (currentTool == Tool.RECT) {
             restoreSnapshot(tempSnapshot);
-            gc.setStroke(Color.BLACK);
-            gc.setLineWidth(2);
+            // толщина линии и цвет из кнопок
+            gc.setStroke(colorPicker.getValue());
+            gc.setLineWidth(sizeSlider.getValue());
+            //gc.setStroke(Color.BLACK);
+            //gc.setLineWidth(2);
             double rx = Math.min(startX, x);
             double ry = Math.min(startY, y);
             double rw = Math.abs(x - startX);
@@ -215,16 +222,22 @@ public class Main extends Application {
         }
         else if (currentTool == Tool.LINE) {
             restoreSnapshot(tempSnapshot);
-            gc.setStroke(Color.BLACK);
-            gc.setLineWidth(2);
+            // толщина линии и цвет из кнопок
+            gc.setStroke(colorPicker.getValue());
+            gc.setLineWidth(sizeSlider.getValue());
+            //gc.setStroke(Color.BLACK);
+            //gc.setLineWidth(2);
             gc.strokeLine(startX, startY, x, y);
             pushUndo();
             redoStack.clear();
             tempSnapshot = null;
         } else if (currentTool == Tool.RECT) {
             restoreSnapshot(tempSnapshot);
-            gc.setStroke(Color.BLACK);
-            gc.setLineWidth(2);
+            // толщина линии и цвет из кнопок
+            gc.setStroke(colorPicker.getValue());
+            gc.setLineWidth(sizeSlider.getValue());
+            //gc.setStroke(Color.BLACK);
+            //gc.setLineWidth(2);
             double rx = Math.min(startX, x);
             double ry = Math.min(startY, y);
             double rw = Math.abs(x - startX);
@@ -271,6 +284,7 @@ public class Main extends Application {
     private void pushUndo() {
         WritableImage snap = canvas.snapshot(null, null);
         undoStack.push(snap);
+        System.out.println(undoStack);
         // ограничение размера стека (опционально)
         if (undoStack.size() > 50) {
             // простая обрезка: удаляем самое старое (в данном простом примере не реализовано удаление нижнего элемента)
