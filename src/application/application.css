@@ -1,1 +1,7 @@
 /* JavaFX CSS - Leave this comment until you have at least create one rule which uses -fx-Property */
+
+.button.active, .color-picker.active, .slider.active {
+    -fx-border-color: #2196F3;
+    -fx-border-width: 2;
+    -fx-background-color: derive(#2196F3, 80%);
+}

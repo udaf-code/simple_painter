@@ -51,6 +51,9 @@ public class Main extends Application {
     private ColorPicker colorPicker = new ColorPicker(Color.BLACK);
     private Slider sizeSlider = new Slider(1, 30, 3);
 
+    /**
+     *
+     */
     @Override
     public void start(Stage stage) {
         canvas = new Canvas(800, 600);
@@ -144,6 +147,16 @@ public class Main extends Application {
         saveBtn.setOnAction(e -> saveToFile(stage));
         loadBtn.setOnAction(e -> loadFromFile(stage));
         pushUndo();
+        // selection manager
+        SelectionManager sel = new SelectionManager();
+        // регистрируем контролы
+        sel.register(lineBtn);
+        sel.register(rectBtn);
+        sel.register(eraserBtn);
+        sel.register(undoBtn);
+        sel.register(redoBtn);
+        sel.register(colorPicker);
+        sel.register(sizeSlider);
     }
     
     private void onMousePressed(MouseEvent e) {
