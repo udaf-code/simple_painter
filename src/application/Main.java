@@ -12,12 +12,19 @@ import java.io.IOException;
 import application.Main.Tool;
 import javafx.application.Application;
 import javafx.embed.swing.SwingFXUtils;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 //import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ColorPicker;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Slider;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
@@ -59,6 +66,22 @@ public class Main extends Application {
         canvas = new Canvas(800, 600);
         gc = canvas.getGraphicsContext2D();
         clearCanvas(gc, canvas);
+        
+        Menu fileMenu = new Menu("Файл");
+        MenuItem saveItem = new MenuItem("Сохранить");
+        MenuItem loadItem = new MenuItem("Загрузить");
+        MenuItem exitItem = new MenuItem("Выход");
+        exitItem.setOnAction(e -> stage.close());
+        fileMenu.getItems().addAll(saveItem, loadItem, new SeparatorMenuItem(), exitItem);
+        
+        Menu settingsMenu = new Menu("Настройки");
+        MenuItem paramItem = new MenuItem("Параметры");
+        settingsMenu.getItems().addAll(paramItem);
+
+        // MenuBar
+        MenuBar menuBar = new MenuBar(fileMenu, settingsMenu);
+        paramItem.setOnAction(e -> paramWindow());
+
 
         colorPicker = new ColorPicker(Color.BLACK);
         sizeSlider = new Slider(1, 30, 3);
@@ -118,7 +141,7 @@ public class Main extends Application {
         HBox tools_two = new HBox(8, curveBtn, lineBtn, circleBtn, starBtn, rectBtn, rotRectBtn, eraserBtn, undoBtn, redoBtn, saveBtn, loadBtn);
         tools.setStyle("-fx-padding: 8; -fx-background-color: #eee;");
         
-        vbox.getChildren().addAll(tools, tools_two);
+        vbox.getChildren().addAll(menuBar, tools, tools_two);
         root.setTop(vbox);
         root.setCenter(canvas);
 
@@ -171,6 +194,22 @@ public class Main extends Application {
         sel.register(redoBtn);
         sel.register(colorPicker);
         sel.register(sizeSlider);
+    }
+    // окно настроек
+    public void paramWindow() {
+    	Stage window = new Stage();
+    	
+    	ChoiceBox<String> choiceBox = new ChoiceBox<>();
+        choiceBox.getItems().addAll("Опция 1", "Опция 2");
+        choiceBox.setValue("Опция 1"); // 
+    	VBox pane = new VBox(10.0, choiceBox);
+        pane.setAlignment(Pos.CENTER);
+        pane.setPadding(new Insets(10.0));
+        Scene scene = new Scene(pane, 400, 250);
+        
+        window.setScene(scene);
+        window.setTitle("Параметры");
+        window.show();
     }
     
     private void onMousePressed(MouseEvent e) {
