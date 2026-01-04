@@ -35,7 +35,7 @@ import javafx.stage.Stage;
 public class Main extends Application {
     private double lastX, lastY;
     
-    enum Tool { CURVE, LINE, RECT, CIRCLE, STAR, ERASER }
+    enum Tool { CURVE, LINE, RECT, ROT_RECT, CIRCLE, STAR, ERASER }
     private Tool currentTool = Tool.CURVE;
     private double startX, startY;
     private Canvas canvas;
@@ -94,6 +94,7 @@ public class Main extends Application {
         ToggleButton curveBtn = new ToggleButton("Кривая");
         ToggleButton lineBtn = new ToggleButton("Линия");
         ToggleButton rectBtn = new ToggleButton("Прямоуг");
+        ToggleButton rotRectBtn = new ToggleButton("Прямоуг с пов");
         // круг
         ToggleButton circleBtn = new ToggleButton("Круг");
         ToggleButton starBtn = new ToggleButton("Звезда");
@@ -104,6 +105,7 @@ public class Main extends Application {
         circleBtn.setToggleGroup(tg);
         starBtn.setToggleGroup(tg);
         rectBtn.setToggleGroup(tg);
+        rotRectBtn.setToggleGroup(tg);
         eraserBtn.setToggleGroup(tg);
         curveBtn.setSelected(true);
 
@@ -113,7 +115,7 @@ public class Main extends Application {
         Button saveBtn = new Button("Save");
         Button loadBtn = new Button("Load");
 
-        HBox tools_two = new HBox(8, curveBtn, lineBtn, circleBtn, starBtn, rectBtn, eraserBtn, undoBtn, redoBtn, saveBtn, loadBtn);
+        HBox tools_two = new HBox(8, curveBtn, lineBtn, circleBtn, starBtn, rectBtn, rotRectBtn, eraserBtn, undoBtn, redoBtn, saveBtn, loadBtn);
         tools.setStyle("-fx-padding: 8; -fx-background-color: #eee;");
         
         vbox.getChildren().addAll(tools, tools_two);
@@ -136,6 +138,7 @@ public class Main extends Application {
         curveBtn.setOnAction(e -> currentTool = Tool.CURVE);
         lineBtn.setOnAction(e -> currentTool = Tool.LINE);
         rectBtn.setOnAction(e -> currentTool = Tool.RECT);
+        rotRectBtn.setOnAction(e -> currentTool = Tool.ROT_RECT);
         circleBtn.setOnAction(e -> currentTool = Tool.CIRCLE);
         starBtn.setOnAction(e -> currentTool = Tool.STAR);
         eraserBtn.setOnAction(e -> currentTool = Tool.ERASER);
@@ -158,8 +161,11 @@ public class Main extends Application {
         // selection manager
         SelectionManager sel = new SelectionManager();
         // регистрируем контролы
+        sel.register(curveBtn);
         sel.register(lineBtn);
         sel.register(rectBtn);
+        sel.register(rotRectBtn);
+        sel.register(circleBtn);
         sel.register(eraserBtn);
         sel.register(undoBtn);
         sel.register(redoBtn);
@@ -185,7 +191,7 @@ public class Main extends Application {
             gc.moveTo(lastX, lastY);
             gc.stroke();
         }
-        else if (currentTool == Tool.RECT || currentTool == Tool.LINE|| currentTool == Tool.CIRCLE|| currentTool == Tool.STAR) {
+        else if (currentTool == Tool.RECT || currentTool == Tool.LINE|| currentTool == Tool.CIRCLE|| currentTool == Tool.STAR|| currentTool == Tool.ROT_RECT) {
             tempSnapshot = canvas.snapshot(null, null);
         } else if (currentTool == Tool.ERASER) {
             pushUndo();
@@ -229,7 +235,10 @@ public class Main extends Application {
             double rw = Math.abs(x - startX);
             double rh = Math.abs(y - startY);
             gc.strokeRect(rx, ry, rw, rh);
-        } else if (currentTool == Tool.CIRCLE) {
+        }else if (currentTool == Tool.ROT_RECT) {
+        	drawPreviewRect(startX, startY, x, y);
+        }else if (currentTool == Tool.CIRCLE) {
+        
             restoreSnapshot(tempSnapshot);
             // толщина линии и цвет из кнопок
             gc.setStroke(colorPicker.getValue());
@@ -280,7 +289,7 @@ public class Main extends Application {
             gc.strokePolygon(xs, ys, points);
 
         }
-    }
+	}
 
     private void onMouseReleased(MouseEvent e) {
         if (e.getButton() != MouseButton.PRIMARY) return;
@@ -318,7 +327,12 @@ public class Main extends Application {
             pushUndo();
             redoStack.clear();
             tempSnapshot = null;
-        } else if (currentTool == Tool.CIRCLE) {
+        }else if (currentTool == Tool.ROT_RECT) {
+        	drawPreviewRect(startX, startY, x, y);
+            pushUndo();
+            redoStack.clear();
+            tempSnapshot = null;
+        }else if (currentTool == Tool.CIRCLE) {
             restoreSnapshot(tempSnapshot);
             // толщина линии и цвет из кнопок
             gc.setStroke(colorPicker.getValue());
@@ -376,6 +390,35 @@ public class Main extends Application {
         }else if (currentTool == Tool.ERASER) {
             // уже сделали pushUndo() при press
         }
+    }
+    // переместить в отдельный класс
+    // Возвращает массив: {centerX, centerY, width, height, angleRad}
+    private double[] calcRectParams(double sx, double sy, double cx, double cy) {
+        double rx = Math.min(sx, cx);
+        double ry = Math.min(sy, cy);
+        double rw = Math.abs(cx - sx);
+        double rh = Math.abs(cy - sy);
+        double centerX = rx + rw / 2.0;
+        double centerY = ry + rh / 2.0;
+        // угол между вектором (sx,sy)->(cx,cy) и осью X
+        double angle = Math.atan2(cy - sy, cx - sx); // радианы
+        return new double[] {centerX, centerY, rw, rh, angle};
+    }
+    //Метод для рисования прямоугольника с поворотом
+    private void drawRotatedRect(GraphicsContext gc, double centerX, double centerY,
+            double w, double h, double angleRad) {
+		gc.save();
+		gc.translate(centerX, centerY);
+		gc.rotate(Math.toDegrees(angleRad)); // rotate ожидает градусы
+		gc.strokeRect(-w/2.0, -h/2.0, w, h); // рисуем от центра
+		gc.restore();
+	}
+    private void drawPreviewRect(double sx, double sy, double x, double y) {
+        restoreSnapshot(tempSnapshot);
+        gc.setStroke(colorPicker.getValue());
+        gc.setLineWidth(sizeSlider.getValue());
+        double[] p = calcRectParams(sx, sy, x, y);
+        drawRotatedRect(gc, p[0], p[1], p[2], p[3], p[4]);
     }
     
     private void undo() {
