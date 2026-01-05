@@ -4,10 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.List;
+import java.util.Map;
 
 import javax.imageio.ImageIO;
-import java.io.File;
-import java.io.IOException;
 
 import application.Main.Tool;
 import javafx.application.Application;
@@ -38,6 +38,13 @@ import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 
 public class Main extends Application {
     private double lastX, lastY;
@@ -63,6 +70,43 @@ public class Main extends Application {
      */
     @Override
     public void start(Stage stage) {
+    	// проверяем файл data.json
+    	File file = new File("data.json");
+    	if (file.exists()){
+    		// создаем
+    		ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> data = Map.of(
+                "name", "Иван",
+                "age", 30,
+                "skills", new String[] {"Java", "SQL"}
+            );
+
+            File out = new File("data.json");
+            try {
+                mapper.writerWithDefaultPrettyPrinter().writeValue(out, data);
+                System.out.println("Записано в " + out.getAbsolutePath());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+    	}
+    	else {
+    		// читаем
+    		File in = new File("data.json");
+    		
+    		try {
+                Map<String, Object> data2 = mapper.readValue(in, new TypeReference<Map<String, Object>>() {});
+                String name = (String) data2.get("name");
+                Integer age = (Integer) data2.get("age"); // Jackson может вернуть Integer
+                // skills пришли как ArrayList или LinkedHashMap? Для строки-массива Jackson даст List<String>
+                List<String> skills = (List<String>) data2.get("skills");
+
+                System.out.println(name);
+                System.out.println(age);
+                System.out.println(skills);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+    	}
         canvas = new Canvas(800, 600);
         gc = canvas.getGraphicsContext2D();
         clearCanvas(gc, canvas);
@@ -198,7 +242,7 @@ public class Main extends Application {
     // окно настроек
     public void paramWindow() {
     	Stage window = new Stage();
-    	
+    	// прикрутить gson если нет gson то опция 1 либол 2
     	ChoiceBox<String> choiceBox = new ChoiceBox<>();
         choiceBox.getItems().addAll("Опция 1", "Опция 2");
         choiceBox.setValue("Опция 1"); // 
