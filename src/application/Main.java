@@ -72,7 +72,7 @@ public class Main extends Application {
     public void start(Stage stage) {
     	// проверяем файл data.json
     	File file = new File("data.json");
-    	if (file.exists()){
+    	if (!file.exists()){
     		// создаем
     		ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> data = Map.of(
@@ -94,6 +94,7 @@ public class Main extends Application {
     		File in = new File("data.json");
     		
     		try {
+    			ObjectMapper mapper = new ObjectMapper();
                 Map<String, Object> data2 = mapper.readValue(in, new TypeReference<Map<String, Object>>() {});
                 String name = (String) data2.get("name");
                 Integer age = (Integer) data2.get("age"); // Jackson может вернуть Integer
