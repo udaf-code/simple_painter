@@ -1,5 +1,3 @@
 {
-  "skills" : [ "Java", "SQL" ],
-  "age" : 30,
-  "name" : "Иван"
+  "type" : "snapshot"
 }

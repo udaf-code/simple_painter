@@ -76,9 +76,7 @@ public class Main extends Application {
     		// создаем
     		ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> data = Map.of(
-                "name", "Иван",
-                "age", 30,
-                "skills", new String[] {"Java", "SQL"}
+                "type", "snapshot"
             );
 
             File out = new File("data.json");
@@ -96,14 +94,8 @@ public class Main extends Application {
     		try {
     			ObjectMapper mapper = new ObjectMapper();
                 Map<String, Object> data2 = mapper.readValue(in, new TypeReference<Map<String, Object>>() {});
-                String name = (String) data2.get("name");
-                Integer age = (Integer) data2.get("age"); // Jackson может вернуть Integer
-                // skills пришли как ArrayList или LinkedHashMap? Для строки-массива Jackson даст List<String>
-                List<String> skills = (List<String>) data2.get("skills");
-
+                String name = (String) data2.get("type");
                 System.out.println(name);
-                System.out.println(age);
-                System.out.println(skills);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -242,11 +234,32 @@ public class Main extends Application {
     }
     // окно настроек
     public void paramWindow() {
+    	String name = "";
     	Stage window = new Stage();
     	// прикрутить gson если нет gson то опция 1 либол 2
     	ChoiceBox<String> choiceBox = new ChoiceBox<>();
-        choiceBox.getItems().addAll("Опция 1", "Опция 2");
-        choiceBox.setValue("Опция 1"); // 
+        choiceBox.getItems().addAll("Shapshots", "Command");
+        // добавить логику выбора от чтения json
+        // читаем
+		File in = new File("data.json");
+		
+		try {
+			ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> data2 = mapper.readValue(in, new TypeReference<Map<String, Object>>() {});
+            name = (String) data2.get("type");
+            System.out.println(name);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        choiceBox.setValue(name); // 
+        // choisebox обработа событий
+        choiceBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.equals(oldVal)) 
+            {
+                // записать newVal в файл (в отдельном потоке!)
+            	System.out.println(newVal);
+            }
+        });
     	VBox pane = new VBox(10.0, choiceBox);
         pane.setAlignment(Pos.CENTER);
         pane.setPadding(new Insets(10.0));
