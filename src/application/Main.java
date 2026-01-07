@@ -64,12 +64,15 @@ public class Main extends Application {
     
     private ColorPicker colorPicker = new ColorPicker(Color.BLACK);
     private Slider sizeSlider = new Slider(1, 30, 3);
+    
+    private undoManager unManeger;
 
     /**
      *
      */
     @Override
     public void start(Stage stage) {
+    	unManager = new undoManager();
     	// проверяем файл data.json
     	File file = new File("data.json");
     	if (!file.exists()){
@@ -257,7 +260,21 @@ public class Main extends Application {
             if (newVal != null && !newVal.equals(oldVal)) 
             {
                 // записать newVal в файл (в отдельном потоке!)
+            	
             	System.out.println(newVal);
+            	// создаем
+        		ObjectMapper mapper = new ObjectMapper();
+                Map<String, Object> data = Map.of(
+                    "type", newVal
+                );
+
+                File out = new File("data.json");
+                try {
+                    mapper.writerWithDefaultPrettyPrinter().writeValue(out, data);
+                    System.out.println("Записано в " + out.getAbsolutePath());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
     	VBox pane = new VBox(10.0, choiceBox);
