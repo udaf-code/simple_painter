@@ -213,17 +213,21 @@ public class Main extends Application {
 //        undoBtn.setOnAction(e -> undo());
 //        redoBtn.setOnAction(e -> redo());
         
-        undoBtn.setOnAction(e -> unManeger.undo(undoStack,canvas,redoStack,gc));
-        redoBtn.setOnAction(e -> unManeger.redo(undoStack,canvas,redoStack,gc));
+        undoBtn.setOnAction(e -> unManeger.undo(canvas,gc));
+        redoBtn.setOnAction(e -> unManeger.redo(canvas,gc));
         clearBtn.setOnAction(e -> {
-            pushUndo();
+        	unManeger.pushUndo(canvas);
+            //pushUndo();
             clearCanvas();
-            redoStack.clear();
+            // исправить все редостеки
+            unManeger.clearRedoStack();
+            //redoStack.clear();
         });
 
         saveBtn.setOnAction(e -> saveToFile(stage));
         loadBtn.setOnAction(e -> loadFromFile(stage));
-        pushUndo();
+        unManeger.pushUndo(canvas);
+        //pushUndo();
         // selection manager
         SelectionManager sel = new SelectionManager();
         // регистрируем контролы
@@ -311,7 +315,8 @@ public class Main extends Application {
         else if (currentTool == Tool.RECT || currentTool == Tool.LINE|| currentTool == Tool.CIRCLE|| currentTool == Tool.STAR|| currentTool == Tool.ROT_RECT) {
             tempSnapshot = canvas.snapshot(null, null);
         } else if (currentTool == Tool.ERASER) {
-            pushUndo();
+        	unManeger.pushUndo(canvas);
+            //pushUndo();
             redoStack.clear();
             eraseAt(startX, startY);
         }
@@ -414,7 +419,8 @@ public class Main extends Application {
         double y = e.getY();
 
         if (currentTool == Tool.CURVE) {
-        	pushUndo();
+        	unManeger.pushUndo(canvas);
+        	//pushUndo();
             redoStack.clear();
             tempSnapshot = null;
         }
@@ -426,7 +432,8 @@ public class Main extends Application {
             //gc.setStroke(Color.BLACK);
             //gc.setLineWidth(2);
             gc.strokeLine(startX, startY, x, y);
-            pushUndo();
+            unManeger.pushUndo(canvas);
+            //pushUndo();
             redoStack.clear();
             tempSnapshot = null;
         } else if (currentTool == Tool.RECT) {
@@ -441,12 +448,14 @@ public class Main extends Application {
             double rw = Math.abs(x - startX);
             double rh = Math.abs(y - startY);
             gc.strokeRect(rx, ry, rw, rh);
-            pushUndo();
+            unManeger.pushUndo(canvas);
+            //pushUndo();
             redoStack.clear();
             tempSnapshot = null;
         }else if (currentTool == Tool.ROT_RECT) {
         	drawPreviewRect(startX, startY, x, y);
-            pushUndo();
+        	unManeger.pushUndo(canvas);
+            //pushUndo();
             redoStack.clear();
             tempSnapshot = null;
         }else if (currentTool == Tool.CIRCLE) {
@@ -461,7 +470,8 @@ public class Main extends Application {
             double rw = Math.abs(x - startX);
             double rh = Math.abs(y - startY);
             gc.strokeOval(rx, ry, rw, rh);
-            pushUndo();
+            unManeger.pushUndo(canvas);
+            //pushUndo();
             redoStack.clear();
             tempSnapshot = null;
         }else if (currentTool == Tool.STAR) {
@@ -500,7 +510,8 @@ public class Main extends Application {
 
             // рисуем замкнутый контур
             gc.strokePolygon(xs, ys, points);
-            pushUndo();
+            unManeger.pushUndo(canvas);
+            //pushUndo();
             redoStack.clear();
             tempSnapshot = null;
 
@@ -538,25 +549,25 @@ public class Main extends Application {
         drawRotatedRect(gc, p[0], p[1], p[2], p[3], p[4]);
     }
     
-    private void undo() {
-        if (undoStack.isEmpty()) return;
-        WritableImage current = canvas.snapshot(null, null);
-        redoStack.push(current);
-
-        WritableImage prev = undoStack.pop();
-        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        gc.drawImage(prev, 0, 0);
-    }
-
-    private void redo() {
-        if (redoStack.isEmpty()) return;
-        WritableImage current = canvas.snapshot(null, null);
-        undoStack.push(current);
-
-        WritableImage next = redoStack.pop();
-        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        gc.drawImage(next, 0, 0);
-    }
+//    private void undo() {
+//        if (undoStack.isEmpty()) return;
+//        WritableImage current = canvas.snapshot(null, null);
+//        redoStack.push(current);
+//
+//        WritableImage prev = undoStack.pop();
+//        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+//        gc.drawImage(prev, 0, 0);
+//    }
+//
+//    private void redo() {
+//        if (redoStack.isEmpty()) return;
+//        WritableImage current = canvas.snapshot(null, null);
+//        undoStack.push(current);
+//
+//        WritableImage next = redoStack.pop();
+//        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+//        gc.drawImage(next, 0, 0);
+//    }
 
     private void clearCanvas(GraphicsContext gc, Canvas canvas) {
         gc.setFill(Color.WHITE);
@@ -568,15 +579,15 @@ public class Main extends Application {
         gc.setStroke(Color.BLACK);
         gc.setLineWidth(2);
     }
-    private void pushUndo() {
-        WritableImage snap = canvas.snapshot(null, null);
-        undoStack.push(snap);
-        System.out.println(undoStack);
-        // ограничение размера стека (опционально)
-        if (undoStack.size() > 50) {
-            // простая обрезка: удаляем самое старое (в данном простом примере не реализовано удаление нижнего элемента)
-        }
-    }
+//    private void pushUndo() {
+//        WritableImage snap = canvas.snapshot(null, null);
+//        undoStack.push(snap);
+//        System.out.println(undoStack);
+//        // ограничение размера стека (опционально)
+//        if (undoStack.size() > 50) {
+//            // простая обрезка: удаляем самое старое (в данном простом примере не реализовано удаление нижнего элемента)
+//        }
+//    }
     private void eraseAt(double x, double y) {
         gc.clearRect(x - ERASER_SIZE / 2, y - ERASER_SIZE / 2, ERASER_SIZE, ERASER_SIZE);
     }
