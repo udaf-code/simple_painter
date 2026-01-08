@@ -6,10 +6,14 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.WritableImage;
 
-public class undoManager {
+public class UndoManager {
 	private boolean is_snapshot;
-	private void pushUndo(WritableImage snap, Deque<WritableImage> undoStack, Canvas canvas) {
-		snap = canvas.snapshot(null, null);
+//	private final int maxSize;
+//
+//    public UndoManager(int maxSize) { this.maxSize = maxSize; }
+
+	public void pushUndo(Deque<WritableImage> undoStack, Canvas canvas) {
+		WritableImage snap = canvas.snapshot(null, null);
         undoStack.push(snap);
         System.out.println(undoStack);
         // ограничение размера стека (опционально)
@@ -17,7 +21,7 @@ public class undoManager {
             // простая обрезка: удаляем самое старое (в данном простом примере не реализовано удаление нижнего элемента)
         }
 	}
-	private void undo(Deque<WritableImage> undoStack, Canvas canvas, Deque<WritableImage> redoStack, GraphicsContext gc) {
+	public void undo(Deque<WritableImage> undoStack, Canvas canvas, Deque<WritableImage> redoStack, GraphicsContext gc) {
 		if (undoStack.isEmpty()) return;
         WritableImage current = canvas.snapshot(null, null);
         redoStack.push(current);
@@ -26,7 +30,7 @@ public class undoManager {
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         gc.drawImage(prev, 0, 0);
 	}
-	private void redo(Deque<WritableImage> undoStack, Canvas canvas, Deque<WritableImage> redoStack, GraphicsContext gc) {
+	public void redo(Deque<WritableImage> undoStack, Canvas canvas, Deque<WritableImage> redoStack, GraphicsContext gc) {
 		if (redoStack.isEmpty()) return;
         WritableImage current = canvas.snapshot(null, null);
         undoStack.push(current);

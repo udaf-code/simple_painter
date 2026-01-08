@@ -65,14 +65,14 @@ public class Main extends Application {
     private ColorPicker colorPicker = new ColorPicker(Color.BLACK);
     private Slider sizeSlider = new Slider(1, 30, 3);
     
-    private undoManager unManeger;
+    private UndoManager unManeger;
 
     /**
      *
      */
     @Override
     public void start(Stage stage) {
-    	unManager = new undoManager();
+    	unManeger = new UndoManager();
     	// проверяем файл data.json
     	File file = new File("data.json");
     	if (!file.exists()){
@@ -210,8 +210,11 @@ public class Main extends Application {
         canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, this::onMouseDragged);
         canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, this::onMouseReleased);
 
-        undoBtn.setOnAction(e -> undo());
-        redoBtn.setOnAction(e -> redo());
+//        undoBtn.setOnAction(e -> undo());
+//        redoBtn.setOnAction(e -> redo());
+        
+        undoBtn.setOnAction(e -> unManeger.undo(undoStack,canvas,redoStack,gc));
+        redoBtn.setOnAction(e -> unManeger.redo(undoStack,canvas,redoStack,gc));
         clearBtn.setOnAction(e -> {
             pushUndo();
             clearCanvas();
