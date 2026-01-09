@@ -47,7 +47,7 @@ import java.util.Map;
 
 
 public class Main extends Application {
-    private double lastX, lastY;
+    //private double lastX, lastY;
     
     enum Tool { CURVE, LINE, RECT, ROT_RECT, CIRCLE, STAR, ERASER }
     private Tool currentTool = Tool.CURVE;
@@ -56,8 +56,8 @@ public class Main extends Application {
     private GraphicsContext gc;
     
 
-    private final Deque<WritableImage> undoStack = new ArrayDeque<>();
-    private final Deque<WritableImage> redoStack = new ArrayDeque<>();
+    //private final Deque<WritableImage> undoStack = new ArrayDeque<>();
+    //private final Deque<WritableImage> redoStack = new ArrayDeque<>();
 
     private WritableImage tempSnapshot = null;
     private final double ERASER_SIZE = 16;
@@ -299,8 +299,8 @@ public class Main extends Application {
         startX = e.getX();
         startY = e.getY();
         //!!! потом переделать убрать лишнее привести логику к единому типу
-        lastX = e.getX();
-        lastY = e.getY();
+//        lastX = e.getX();
+//        lastY = e.getY();
         //
         //pushUndo();
         System.out.println("мышь");
@@ -309,7 +309,8 @@ public class Main extends Application {
         	gc.setStroke(colorPicker.getValue());
             gc.setLineWidth(sizeSlider.getValue());
             gc.beginPath();
-            gc.moveTo(lastX, lastY);
+            gc.moveTo(startX, startY);
+            //gc.moveTo(lastX, lastY);
             gc.stroke();
         }
         else if (currentTool == Tool.RECT || currentTool == Tool.LINE|| currentTool == Tool.CIRCLE|| currentTool == Tool.STAR|| currentTool == Tool.ROT_RECT) {
@@ -317,7 +318,8 @@ public class Main extends Application {
         } else if (currentTool == Tool.ERASER) {
         	unManeger.pushUndo(canvas);
             //pushUndo();
-            redoStack.clear();
+        	unManeger.clearRedoStack();
+            //redoStack.clear();
             eraseAt(startX, startY);
         }
     }
@@ -331,8 +333,10 @@ public class Main extends Application {
             gc.setLineWidth(sizeSlider.getValue());
             gc.lineTo(x, y);
             gc.stroke();
-            lastX = x;
-            lastY = y;
+//            lastX = x;
+//            lastY = y;
+            startX = x;
+            startY = y;
         }
         else if (currentTool == Tool.ERASER) {
             eraseAt(x, y);
@@ -421,7 +425,8 @@ public class Main extends Application {
         if (currentTool == Tool.CURVE) {
         	unManeger.pushUndo(canvas);
         	//pushUndo();
-            redoStack.clear();
+        	unManeger.clearRedoStack();
+            //redoStack.clear();
             tempSnapshot = null;
         }
         else if (currentTool == Tool.LINE) {
@@ -434,7 +439,8 @@ public class Main extends Application {
             gc.strokeLine(startX, startY, x, y);
             unManeger.pushUndo(canvas);
             //pushUndo();
-            redoStack.clear();
+            unManeger.clearRedoStack();
+            //redoStack.clear();
             tempSnapshot = null;
         } else if (currentTool == Tool.RECT) {
             restoreSnapshot(tempSnapshot);
@@ -450,13 +456,15 @@ public class Main extends Application {
             gc.strokeRect(rx, ry, rw, rh);
             unManeger.pushUndo(canvas);
             //pushUndo();
-            redoStack.clear();
+            unManeger.clearRedoStack();
+            //redoStack.clear();
             tempSnapshot = null;
         }else if (currentTool == Tool.ROT_RECT) {
         	drawPreviewRect(startX, startY, x, y);
         	unManeger.pushUndo(canvas);
             //pushUndo();
-            redoStack.clear();
+        	unManeger.clearRedoStack();
+            //redoStack.clear();
             tempSnapshot = null;
         }else if (currentTool == Tool.CIRCLE) {
             restoreSnapshot(tempSnapshot);
@@ -472,7 +480,8 @@ public class Main extends Application {
             gc.strokeOval(rx, ry, rw, rh);
             unManeger.pushUndo(canvas);
             //pushUndo();
-            redoStack.clear();
+            unManeger.clearRedoStack();
+            //redoStack.clear();
             tempSnapshot = null;
         }else if (currentTool == Tool.STAR) {
         	// вынести в отдельный метод
@@ -512,7 +521,8 @@ public class Main extends Application {
             gc.strokePolygon(xs, ys, points);
             unManeger.pushUndo(canvas);
             //pushUndo();
-            redoStack.clear();
+            unManeger.clearRedoStack();
+            //redoStack.clear();
             tempSnapshot = null;
 
         }else if (currentTool == Tool.ERASER) {
@@ -628,8 +638,10 @@ public class Main extends Application {
             try {
                 javafx.scene.image.Image img = new javafx.scene.image.Image(file.toURI().toString());
                 // сохранить текущее состояние для undo
-                pushUndo();
-                redoStack.clear();
+                unManeger.pushUndo(canvas);
+                //pushUndo();
+                unManeger.clearRedoStack();
+                //redoStack.clear();
                 // очистить и нарисовать загруженное изображение, масштабируем под холст
                 gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
                 gc.drawImage(img, 0, 0, canvas.getWidth(), canvas.getHeight());
