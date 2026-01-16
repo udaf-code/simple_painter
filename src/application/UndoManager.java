@@ -3,46 +3,53 @@ package application;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.WritableImage;
-
 public class UndoManager {
-	//private boolean is_snapshot;
-    private final Deque<WritableImage> undoStack = new ArrayDeque<>();
-    private final Deque<WritableImage> redoStack = new ArrayDeque<>();
-//	private final int maxSize;
-//
-//    public UndoManager(int maxSize) { this.maxSize = maxSize; }
-    public void clearRedoStack() {
-    	redoStack.clear();
+    private final Deque<Command> undoStack = new ArrayDeque<>();
+    private final Deque<Command> redoStack = new ArrayDeque<>();
+    private final int maxDepth;
+
+    public UndoManager(int maxDepth) {
+        this.maxDepth = maxDepth;
     }
-	public void pushUndo(Canvas canvas) {
-		WritableImage snap = canvas.snapshot(null, null);
-        undoStack.push(snap);
-        System.out.println(undoStack);
-        // ограничение размера стека (опционально)
-        if (undoStack.size() > 50) {
-            // простая обрезка: удаляем самое старое (в данном простом примере не реализовано удаление нижнего элемента)
+
+    public void doCommand(Command cmd) {
+        cmd.execute();
+        undoStack.push(cmd);
+        redoStack.clear();
+        trimToDepth();
+    }
+
+    public void undo() {
+        if (!undoStack.isEmpty()) {
+        	
+            Command cmd = undoStack.pop();
+            cmd.undo();
+            redoStack.push(cmd);
+            
         }
-	}
-	public void undo(Canvas canvas, GraphicsContext gc) {
-		if (undoStack.isEmpty()) return;
-        WritableImage current = canvas.snapshot(null, null);
-        redoStack.push(current);
+    }
 
-        WritableImage prev = undoStack.pop();
-        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        gc.drawImage(prev, 0, 0);
-	}
-	public void redo(Canvas canvas, GraphicsContext gc) {
-		if (redoStack.isEmpty()) return;
-        WritableImage current = canvas.snapshot(null, null);
-        undoStack.push(current);
+    public void redo() {
+        if (!redoStack.isEmpty()) {
+            Command cmd = redoStack.pop();
+            cmd.execute();
+            undoStack.push(cmd);
+            trimToDepth();
+        }
+    }
 
-        WritableImage next = redoStack.pop();
-        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        gc.drawImage(next, 0, 0);
-	}
-	
+    public boolean canUndo() {
+        return !undoStack.isEmpty();
+    }
+
+    public boolean canRedo() {
+        return !redoStack.isEmpty();
+    }
+
+    private void trimToDepth() {
+        while (undoStack.size() > maxDepth) {
+            // удаляем самый старый — у ArrayDeque нет прямого удаления "низу" в O(1) кроме removeLast
+            undoStack.removeLast();
+        }
+    }
 }

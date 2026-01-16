@@ -3,6 +3,7 @@ package application;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,7 @@ public class Main extends Application {
     private double startX, startY;
     private Canvas canvas;
     private GraphicsContext gc;
+    private final List<Drawable> model = new ArrayList<>();
     
 
     //private final Deque<WritableImage> undoStack = new ArrayDeque<>();
@@ -65,14 +67,24 @@ public class Main extends Application {
     private ColorPicker colorPicker = new ColorPicker(Color.BLACK);
     private Slider sizeSlider = new Slider(1, 30, 3);
     
-    private UndoManager unManeger;
+    private final UndoManager undoManager = new UndoManager(100);
+    
+    private UndoManagerSnap unManeger;
+    
+    private Stroke currentStroke = null;
+    private Line currentLine = null;
+    private Erase currentErase = null;
+    private Circle currentCircle = null;
+    private Rect currentRect = null;
+    private Star currentStar = null;
+    private RotRect currentRotRect = null;
 
     /**
      *
      */
     @Override
     public void start(Stage stage) {
-    	unManeger = new UndoManager();
+    	unManeger = new UndoManagerSnap();
     	// проверяем файл data.json
     	File file = new File("data.json");
     	if (!file.exists()){
@@ -293,241 +305,587 @@ public class Main extends Application {
         window.setTitle("Параметры");
         window.show();
     }
-    
     private void onMousePressed(MouseEvent e) {
-        if (e.getButton() != MouseButton.PRIMARY) return;
-        startX = e.getX();
-        startY = e.getY();
-        //!!! потом переделать убрать лишнее привести логику к единому типу
-//        lastX = e.getX();
-//        lastY = e.getY();
-        //
-        //pushUndo();
-        System.out.println("мышь");
-        // простое рисование
-        if (currentTool == Tool.CURVE) {
-        	gc.setStroke(colorPicker.getValue());
-            gc.setLineWidth(sizeSlider.getValue());
-            gc.beginPath();
-            gc.moveTo(startX, startY);
-            //gc.moveTo(lastX, lastY);
-            gc.stroke();
+    	if (e.getButton() != MouseButton.PRIMARY) return;
+    	if (currentTool == Tool.CURVE) {
+    		currentStroke = new Stroke(Color.BLACK, 2.0);
+            currentStroke.addPoint(e.getX(), e.getY());
+    	}
+    	else if (currentTool == Tool.Line) {
+    		currentLine = new Line(Color.BLACK, 2.0);
+    		currentLine.addPoint(e.getX(), e.getY());
+    	}
+    	else if (currentTool == Tool.Erase) {
+    		currentErase = new Erase();
+    		currentErase.addPoint(e.getX(), e.getY());
+    		//eraseAt(e.getX(), e.getY());
+    	}
+    	else if (currentTool == Tool.Circle) {
+    		currentCircle = new Circle(Color.BLACK, 2.0);
+    		currentCircle.addPoint(e.getX(), e.getY());
+    	}
+    	else if (currentTool == Tool.Rect) {
+    		currentRect = new Rect(Color.BLACK, 2.0);
+    		currentRect.addPoint(e.getX(), e.getY());
+    	}
+    	else if (currentTool == Tool.Star) {
+    		currentStar = new Star(Color.BLACK, 2.0);
+    		currentStar.addPoint(e.getX(), e.getY());
+    	}
+    	else if (currentTool == Tool.RotRect) {
+    		currentRotRect = new RotRect(Color.BLACK, 2.0);
+    		currentRotRect.addPoint(e.getX(), e.getY());
+    	}
+    }
+    private void onMouseDragged(MouseEvent e) {
+    	if (e.getButton() != MouseButton.PRIMARY) return;
+    	if (currentTool == Tool.CURVE) {
+            if (currentStroke != null) {
+                currentStroke.addPoint(e.getX(), e.getY());
+                redraw(); // перерисовываем всё модель + текущий черновик
+                drawStroke(currentStroke);
+            }
+    	}
+		else if (currentTool == Tool.Line) {
+			if (currentLine != null) {
+				currentLine.addPoint(e.getX(), e.getY());
+				redraw();
+				drawLine(currentLine);
+			}
+		}
+		else if (currentTool == Tool.Erase) {
+			if (currentErase != null) {
+				currentErase.addPoint(e.getX(), e.getY());
+				redraw();
+				drawErase(currentErase);
+			//eraseAt(e.getX(), e.getY());  		
+			}
+		}
+		else if (currentTool == Tool.Circle) {
+			if (currentCircle != null) {
+				currentCircle.addPoint(e.getX(), e.getY());
+				redraw();
+				drawCircle(currentCircle);		
+			}
+		}
+		else if (currentTool == Tool.Rect) {
+			if (currentRect != null) {
+				currentRect.addPoint(e.getX(), e.getY());
+				redraw();
+				drawRect(currentRect);		
+			}    		
+		}
+		else if (currentTool == Tool.Star) {
+			if (currentStar != null) {
+				currentStar.addPoint(e.getX(), e.getY());
+				redraw();
+				drawStar(currentStar); 	
+			}
+		}
+		else if (currentTool == Tool.RotRect) {
+			if (currentRotRect != null) {
+				currentRotRect.addPoint(e.getX(), e.getY());
+				redraw();
+				drawRotRect(currentRotRect); 	
+			}
+    	}
+    }
+    private void onMouseReleased(MouseEvent e) {
+    	if (e.getButton() != MouseButton.PRIMARY) return;
+    	if (currentTool == Tool.Stroke) {
+            if (currentStroke != null) {
+                currentStroke.addPoint(e.getX(), e.getY());
+                // Создаём команду и выполняем её через UndoManager
+                DrawStrokeCommand cmd = new DrawStrokeCommand(model, currentStroke);
+                undoManager.doCommand(cmd);
+                currentStroke = null;
+                redraw();
+                updateButtons(undoBtn, redoBtn);
+            }
+    	}
+    	else if (currentTool == Tool.Line) {
+    		if (currentLine != null) {
+				currentLine.addPoint(e.getX(), e.getY());
+				// Создаём команду и выполняем её через UndoManager
+				DrawLineCommand cmd = new DrawLineCommand(model, currentLine);
+                undoManager.doCommand(cmd);
+                currentLine = null;
+				redraw();
+				updateButtons(undoBtn, redoBtn);
+				//drawLine(currentLine);
+			}
+		}
+    	else if (currentTool == Tool.Erase) {
+    		if (currentErase != null) {
+    			DrawEraseCommand cmd = new DrawEraseCommand(model, currentErase);
+    			undoManager.doCommand(cmd);
+    			currentErase = null;
+    			redraw();
+				updateButtons(undoBtn, redoBtn);
+    		}
+    	}
+    	else if (currentTool == Tool.Circle) {
+    		if (currentCircle != null) {
+    			DrawCircleCommand cmd = new DrawCircleCommand(model, currentCircle);
+    			undoManager.doCommand(cmd);
+    			currentCircle = null;
+    			redraw();
+				updateButtons(undoBtn, redoBtn);
+    		}
+    	}
+		else if (currentTool == Tool.Rect) {
+			if (currentRect != null) {
+    			DrawRectCommand cmd = new DrawRectCommand(model, currentRect);
+    			undoManager.doCommand(cmd);
+    			currentRect = null;
+    			redraw();
+				updateButtons(undoBtn, redoBtn);
+    		}   		
+		}
+		else if (currentTool == Tool.Star) {
+			if (currentStar != null) {
+    			DrawStarCommand cmd = new DrawStarCommand(model, currentStar);
+    			undoManager.doCommand(cmd);
+    			currentStar = null;
+    			redraw();
+				updateButtons(undoBtn, redoBtn);
+    		}     		
+		}
+		else if (currentTool == Tool.RotRect) {
+			if (currentRotRect != null) {
+    			DrawRotRectCommand cmd = new DrawRotRectCommand(model, currentRotRect);
+    			undoManager.doCommand(cmd);
+    			currentRotRect = null;
+    			redraw();
+				updateButtons(undoBtn, redoBtn);
+    		} 
+    	}
+    }
+    
+    
+//    private void onMousePressed(MouseEvent e) {
+//        if (e.getButton() != MouseButton.PRIMARY) return;
+//        startX = e.getX();
+//        startY = e.getY();
+//        //!!! потом переделать убрать лишнее привести логику к единому типу
+////        lastX = e.getX();
+////        lastY = e.getY();
+//        //
+//        //pushUndo();
+//        System.out.println("мышь");
+//        // простое рисование
+//        if (currentTool == Tool.CURVE) {
+//        	gc.setStroke(colorPicker.getValue());
+//            gc.setLineWidth(sizeSlider.getValue());
+//            gc.beginPath();
+//            gc.moveTo(startX, startY);
+//            //gc.moveTo(lastX, lastY);
+//            gc.stroke();
+//        }
+//        else if (currentTool == Tool.RECT || currentTool == Tool.LINE|| currentTool == Tool.CIRCLE|| currentTool == Tool.STAR|| currentTool == Tool.ROT_RECT) {
+//            tempSnapshot = canvas.snapshot(null, null);
+//        } else if (currentTool == Tool.ERASER) {
+//        	unManeger.pushUndo(canvas);
+//            //pushUndo();
+//        	unManeger.clearRedoStack();
+//            //redoStack.clear();
+//            eraseAt(startX, startY);
+//        }
+//    }
+
+//    private void onMouseDragged(MouseEvent e) {
+//        double x = e.getX();
+//        double y = e.getY();
+//
+//        if (currentTool == Tool.CURVE) {
+//        	gc.setStroke(colorPicker.getValue());
+//            gc.setLineWidth(sizeSlider.getValue());
+//            gc.lineTo(x, y);
+//            gc.stroke();
+////            lastX = x;
+////            lastY = y;
+//            startX = x;
+//            startY = y;
+//        }
+//        else if (currentTool == Tool.ERASER) {
+//            eraseAt(x, y);
+//        } else if (currentTool == Tool.LINE) {
+//            restoreSnapshot(tempSnapshot);
+//            // толщина линии и цвет из кнопок
+//            gc.setStroke(colorPicker.getValue());
+//            gc.setLineWidth(sizeSlider.getValue());
+//            //gc.setStroke(Color.BLACK);
+//            //gc.setLineWidth(2);
+//            gc.strokeLine(startX, startY, x, y);
+//        
+//        } else if (currentTool == Tool.RECT) {
+//            restoreSnapshot(tempSnapshot);
+//            // толщина линии и цвет из кнопок
+//            gc.setStroke(colorPicker.getValue());
+//            gc.setLineWidth(sizeSlider.getValue());
+//            //gc.setStroke(Color.BLACK);
+//            //gc.setLineWidth(2);
+//            double rx = Math.min(startX, x);
+//            double ry = Math.min(startY, y);
+//            double rw = Math.abs(x - startX);
+//            double rh = Math.abs(y - startY);
+//            gc.strokeRect(rx, ry, rw, rh);
+//        }else if (currentTool == Tool.ROT_RECT) {
+//        	drawPreviewRect(startX, startY, x, y);
+//        }else if (currentTool == Tool.CIRCLE) {
+//        
+//            restoreSnapshot(tempSnapshot);
+//            // толщина линии и цвет из кнопок
+//            gc.setStroke(colorPicker.getValue());
+//            gc.setLineWidth(sizeSlider.getValue());
+//            //gc.setStroke(Color.BLACK);
+//            //gc.setLineWidth(2);
+//            double rx = Math.min(startX, x);
+//            double ry = Math.min(startY, y);
+//            double rw = Math.abs(x - startX);
+//            double rh = Math.abs(y - startY);
+//            //gc.strokeRect(rx, ry, rw, rh);
+//            gc.strokeOval(rx, ry, rw, rh);
+//        } else if (currentTool == Tool.STAR) {
+//        	// вынести в отдельный метод
+//            restoreSnapshot(tempSnapshot);
+//            // толщина линии и цвет из кнопок
+//            gc.setStroke(colorPicker.getValue());
+//            gc.setLineWidth(sizeSlider.getValue());
+//         // startX, startY - точка начала (например первый клик), x, y - текущая позиция мыши
+//            // используем ограничивающий прямоугольник как у прямоугольника
+//            double rx = Math.min(startX, x);
+//            double ry = Math.min(startY, y);
+//            double rw = Math.abs(x - startX);
+//            double rh = Math.abs(y - startY);
+//
+//            // центр и внешний радиус (по меньшей стороне прямоугольника)
+//            double cx = rx + rw / 2.0;
+//            double cy = ry + rh / 2.0;
+//            double outerRadius = Math.min(rw, rh) / 2.0;
+//            // внутренний радиус задаём как долю внешнего (0.4-0.5 обычно хорошо)
+//            double innerRadius = outerRadius * 0.5;
+//
+//            // количество вершин: 5-конечная звезда -> 10 точек чередующихся
+//            int points = 10;
+//            double[] xs = new double[points];
+//            double[] ys = new double[points];
+//
+//            // смещение угла так, чтобы один луч смотрел вверх (можно изменить)
+//            double startAngle = -Math.PI / 2.0; // вверх
+//            for (int i = 0; i < points; i++) {
+//                double angle = startAngle + i * (2 * Math.PI / points);
+//                double r = (i % 2 == 0) ? outerRadius : innerRadius;
+//                xs[i] = cx + Math.cos(angle) * r;
+//                ys[i] = cy + Math.sin(angle) * r;
+//            }
+//
+//            // рисуем замкнутый контур
+//            gc.strokePolygon(xs, ys, points);
+//
+//        }
+//	}
+
+//    private void onMouseReleased(MouseEvent e) {
+//        if (e.getButton() != MouseButton.PRIMARY) return;
+//        double x = e.getX();
+//        double y = e.getY();
+//
+//        if (currentTool == Tool.CURVE) {
+//        	unManeger.pushUndo(canvas);
+//        	//pushUndo();
+//        	unManeger.clearRedoStack();
+//            //redoStack.clear();
+//            tempSnapshot = null;
+//        }
+//        else if (currentTool == Tool.LINE) {
+//            restoreSnapshot(tempSnapshot);
+//            // толщина линии и цвет из кнопок
+//            gc.setStroke(colorPicker.getValue());
+//            gc.setLineWidth(sizeSlider.getValue());
+//            //gc.setStroke(Color.BLACK);
+//            //gc.setLineWidth(2);
+//            gc.strokeLine(startX, startY, x, y);
+//            unManeger.pushUndo(canvas);
+//            //pushUndo();
+//            unManeger.clearRedoStack();
+//            //redoStack.clear();
+//            tempSnapshot = null;
+//        } else if (currentTool == Tool.RECT) {
+//            restoreSnapshot(tempSnapshot);
+//            // толщина линии и цвет из кнопок
+//            gc.setStroke(colorPicker.getValue());
+//            gc.setLineWidth(sizeSlider.getValue());
+//            //gc.setStroke(Color.BLACK);
+//            //gc.setLineWidth(2);
+//            double rx = Math.min(startX, x);
+//            double ry = Math.min(startY, y);
+//            double rw = Math.abs(x - startX);
+//            double rh = Math.abs(y - startY);
+//            gc.strokeRect(rx, ry, rw, rh);
+//            unManeger.pushUndo(canvas);
+//            //pushUndo();
+//            unManeger.clearRedoStack();
+//            //redoStack.clear();
+//            tempSnapshot = null;
+//        }else if (currentTool == Tool.ROT_RECT) {
+//        	drawPreviewRect(startX, startY, x, y);
+//        	unManeger.pushUndo(canvas);
+//            //pushUndo();
+//        	unManeger.clearRedoStack();
+//            //redoStack.clear();
+//            tempSnapshot = null;
+//        }else if (currentTool == Tool.CIRCLE) {
+//            restoreSnapshot(tempSnapshot);
+//            // толщина линии и цвет из кнопок
+//            gc.setStroke(colorPicker.getValue());
+//            gc.setLineWidth(sizeSlider.getValue());
+//            //gc.setStroke(Color.BLACK);
+//            //gc.setLineWidth(2);
+//            double rx = Math.min(startX, x);
+//            double ry = Math.min(startY, y);
+//            double rw = Math.abs(x - startX);
+//            double rh = Math.abs(y - startY);
+//            gc.strokeOval(rx, ry, rw, rh);
+//            unManeger.pushUndo(canvas);
+//            //pushUndo();
+//            unManeger.clearRedoStack();
+//            //redoStack.clear();
+//            tempSnapshot = null;
+//        }else if (currentTool == Tool.STAR) {
+//        	// вынести в отдельный метод
+//            restoreSnapshot(tempSnapshot);
+//            // толщина линии и цвет из кнопок
+//            gc.setStroke(colorPicker.getValue());
+//            gc.setLineWidth(sizeSlider.getValue());
+//         // startX, startY - точка начала (например первый клик), x, y - текущая позиция мыши
+//            // используем ограничивающий прямоугольник как у прямоугольника
+//            double rx = Math.min(startX, x);
+//            double ry = Math.min(startY, y);
+//            double rw = Math.abs(x - startX);
+//            double rh = Math.abs(y - startY);
+//
+//            // центр и внешний радиус (по меньшей стороне прямоугольника)
+//            double cx = rx + rw / 2.0;
+//            double cy = ry + rh / 2.0;
+//            double outerRadius = Math.min(rw, rh) / 2.0;
+//            // внутренний радиус задаём как долю внешнего (0.4-0.5 обычно хорошо)
+//            double innerRadius = outerRadius * 0.5;
+//
+//            // количество вершин: 5-конечная звезда -> 10 точек чередующихся
+//            int points = 10;
+//            double[] xs = new double[points];
+//            double[] ys = new double[points];
+//
+//            // смещение угла так, чтобы один луч смотрел вверх (можно изменить)
+//            double startAngle = -Math.PI / 2.0; // вверх
+//            for (int i = 0; i < points; i++) {
+//                double angle = startAngle + i * (2 * Math.PI / points);
+//                double r = (i % 2 == 0) ? outerRadius : innerRadius;
+//                xs[i] = cx + Math.cos(angle) * r;
+//                ys[i] = cy + Math.sin(angle) * r;
+//            }
+//
+//            // рисуем замкнутый контур
+//            gc.strokePolygon(xs, ys, points);
+//            unManeger.pushUndo(canvas);
+//            //pushUndo();
+//            unManeger.clearRedoStack();
+//            //redoStack.clear();
+//            tempSnapshot = null;
+//
+//        }else if (currentTool == Tool.ERASER) {
+//            // уже сделали pushUndo() при press
+//        }
+//    }
+    
+    private void drawStar(Star s) {
+    	if (s == null) return;
+    	List<Double> ptl = s.getPoints();
+    	int size = ptl.size();
+        if (ptl.size() < 4) return;
+        gc.setStroke(s.getColor());
+        gc.setLineWidth(s.getWidth());
+        //gc.beginPath();
+        //gc.moveTo(ptl.get(0), ptl.get(1));
+        double rx = Math.min(ptl.get(0), ptl.get(size-2));
+        double ry = Math.min(ptl.get(1), ptl.get(size-1));
+        double rw = Math.abs(ptl.get(size-2) - ptl.get(0));
+        double rh = Math.abs(ptl.get(size-1) - ptl.get(1));
+        //gc.strokeRect(rx, ry, rw, rh);
+        //gc.strokeRect(rx, ry, rw, rh);
+     // центр и внешний радиус (по меньшей стороне прямоугольника)
+        double cx = rx + rw / 2.0;
+        double cy = ry + rh / 2.0;
+        double outerRadius = Math.min(rw, rh) / 2.0;
+        // внутренний радиус задаём как долю внешнего (0.4-0.5 обычно хорошо)
+        double innerRadius = outerRadius * 0.5;
+
+        // количество вершин: 5-конечная звезда -> 10 точек чередующихся
+        int points = 10;
+        double[] xs = new double[points];
+        double[] ys = new double[points];
+
+        // смещение угла так, чтобы один луч смотрел вверх (можно изменить)
+        double startAngle = -Math.PI / 2.0; // вверх
+        for (int i = 0; i < points; i++) {
+            double angle = startAngle + i * (2 * Math.PI / points);
+            double r = (i % 2 == 0) ? outerRadius : innerRadius;
+            xs[i] = cx + Math.cos(angle) * r;
+            ys[i] = cy + Math.sin(angle) * r;
         }
-        else if (currentTool == Tool.RECT || currentTool == Tool.LINE|| currentTool == Tool.CIRCLE|| currentTool == Tool.STAR|| currentTool == Tool.ROT_RECT) {
-            tempSnapshot = canvas.snapshot(null, null);
-        } else if (currentTool == Tool.ERASER) {
-        	unManeger.pushUndo(canvas);
-            //pushUndo();
-        	unManeger.clearRedoStack();
-            //redoStack.clear();
-            eraseAt(startX, startY);
-        }
+
+        // рисуем замкнутый контур
+        gc.strokePolygon(xs, ys, points);
     }
 
-    private void onMouseDragged(MouseEvent e) {
-        double x = e.getX();
-        double y = e.getY();
+    private void drawRotRect(RotRect rr) {
+        if (rr == null) return;
+        List<Double> ptl = rr.getPoints();
+        int size = ptl.size();
+        if (size < 4) return;
 
-        if (currentTool == Tool.CURVE) {
-        	gc.setStroke(colorPicker.getValue());
-            gc.setLineWidth(sizeSlider.getValue());
-            gc.lineTo(x, y);
-            gc.stroke();
-//            lastX = x;
-//            lastY = y;
-            startX = x;
-            startY = y;
+        gc.save(); // важно сохранить состояние перед трансформациями
+
+        gc.setStroke(rr.getColor());
+        gc.setLineWidth(rr.getWidth());
+
+        double sx = ptl.get(0);
+        double sy = ptl.get(1);
+        double cx = ptl.get(size - 2);
+        double cy = ptl.get(size - 1);
+
+        double rx = Math.min(sx, cx);
+        double ry = Math.min(sy, cy);
+        double rw = Math.abs(cx - sx);
+        double rh = Math.abs(cy - sy);
+        double centerX = rx + rw / 2.0;
+        double centerY = ry + rh / 2.0;
+        double angle = Math.atan2(cy - sy, cx - sx);
+
+        gc.translate(centerX, centerY);
+        gc.rotate(Math.toDegrees(angle));
+        gc.strokeRect(-rw / 2.0, -rh / 2.0, rw, rh);
+
+        gc.restore(); // вернуть предыдущее состояние
+    }
+    
+    private void drawRect(Rect r) {
+    	if (r == null) return;
+    	List<Double> ptl = r.getPoints();
+    	int size = ptl.size();
+        if (ptl.size() < 4) return;
+        gc.setStroke(r.getColor());
+        gc.setLineWidth(r.getWidth());
+        gc.beginPath();
+        gc.moveTo(ptl.get(0), ptl.get(1));
+        double rx = Math.min(ptl.get(0), ptl.get(size-2));
+        double ry = Math.min(ptl.get(1), ptl.get(size-1));
+        double rw = Math.abs(ptl.get(size-2) - ptl.get(0));
+        double rh = Math.abs(ptl.get(size-1) - ptl.get(1));
+        //gc.strokeRect(rx, ry, rw, rh);
+        gc.strokeRect(rx, ry, rw, rh);
+    }
+    private void drawCircle(Circle c) {
+    	if (c == null) return;
+    	List<Double> ptl = c.getPoints();
+    	int size = ptl.size();
+        if (ptl.size() < 4) return;
+        gc.setStroke(c.getColor());
+        gc.setLineWidth(c.getWidth());
+        gc.beginPath();
+        gc.moveTo(ptl.get(0), ptl.get(1));
+        double rx = Math.min(ptl.get(0), ptl.get(size-2));
+        double ry = Math.min(ptl.get(1), ptl.get(size-1));
+        double rw = Math.abs(ptl.get(size-2) - ptl.get(0));
+        double rh = Math.abs(ptl.get(size-1) - ptl.get(1));
+        //gc.strokeRect(rx, ry, rw, rh);
+        gc.strokeOval(rx, ry, rw, rh);
+//        for (int i = 2; i < ptl.size(); i += 2) {
+//            gc.lineTo(ptl.get(i), ptl.get(i + 1));
+//        }
+        //gc.lineTo(ptl.get(size-2), ptl.get(size-1));
+        //gc.stroke();
+    }
+    
+    private void drawLine(Line l) {
+    	if (l == null) return;
+    	List<Double> ptl = l.getPoints();
+    	int size = ptl.size();
+        if (ptl.size() < 4) return;
+        gc.setStroke(l.getColor());
+        gc.setLineWidth(l.getWidth());
+        gc.beginPath();
+        gc.moveTo(ptl.get(0), ptl.get(1));
+//        for (int i = 2; i < ptl.size(); i += 2) {
+//            gc.lineTo(ptl.get(i), ptl.get(i + 1));
+//        }
+        gc.lineTo(ptl.get(size-2), ptl.get(size-1));
+        gc.stroke();
+    }
+ // рисовать штрихи
+    private void drawStroke(Stroke s) {
+        List<Double> pts = s.getPoints();
+        if (pts.size() < 4) return;
+        gc.setStroke(s.getColor());
+        gc.setLineWidth(s.getWidth());
+        gc.beginPath();
+        gc.moveTo(pts.get(0), pts.get(1));
+        for (int i = 2; i < pts.size(); i += 2) {
+            gc.lineTo(pts.get(i), pts.get(i + 1));
         }
-        else if (currentTool == Tool.ERASER) {
-            eraseAt(x, y);
-        } else if (currentTool == Tool.LINE) {
-            restoreSnapshot(tempSnapshot);
-            // толщина линии и цвет из кнопок
-            gc.setStroke(colorPicker.getValue());
-            gc.setLineWidth(sizeSlider.getValue());
-            //gc.setStroke(Color.BLACK);
-            //gc.setLineWidth(2);
-            gc.strokeLine(startX, startY, x, y);
-        
-        } else if (currentTool == Tool.RECT) {
-            restoreSnapshot(tempSnapshot);
-            // толщина линии и цвет из кнопок
-            gc.setStroke(colorPicker.getValue());
-            gc.setLineWidth(sizeSlider.getValue());
-            //gc.setStroke(Color.BLACK);
-            //gc.setLineWidth(2);
-            double rx = Math.min(startX, x);
-            double ry = Math.min(startY, y);
-            double rw = Math.abs(x - startX);
-            double rh = Math.abs(y - startY);
-            gc.strokeRect(rx, ry, rw, rh);
-        }else if (currentTool == Tool.ROT_RECT) {
-        	drawPreviewRect(startX, startY, x, y);
-        }else if (currentTool == Tool.CIRCLE) {
-        
-            restoreSnapshot(tempSnapshot);
-            // толщина линии и цвет из кнопок
-            gc.setStroke(colorPicker.getValue());
-            gc.setLineWidth(sizeSlider.getValue());
-            //gc.setStroke(Color.BLACK);
-            //gc.setLineWidth(2);
-            double rx = Math.min(startX, x);
-            double ry = Math.min(startY, y);
-            double rw = Math.abs(x - startX);
-            double rh = Math.abs(y - startY);
-            //gc.strokeRect(rx, ry, rw, rh);
-            gc.strokeOval(rx, ry, rw, rh);
-        } else if (currentTool == Tool.STAR) {
-        	// вынести в отдельный метод
-            restoreSnapshot(tempSnapshot);
-            // толщина линии и цвет из кнопок
-            gc.setStroke(colorPicker.getValue());
-            gc.setLineWidth(sizeSlider.getValue());
-         // startX, startY - точка начала (например первый клик), x, y - текущая позиция мыши
-            // используем ограничивающий прямоугольник как у прямоугольника
-            double rx = Math.min(startX, x);
-            double ry = Math.min(startY, y);
-            double rw = Math.abs(x - startX);
-            double rh = Math.abs(y - startY);
+        gc.stroke();
+    }
+    // стирание
+    private void eraseAt(double x, double y) {
+    	final double ERASER_SIZE = 10;
+    	gc.clearRect(x - ERASER_SIZE / 2, y - ERASER_SIZE / 2, ERASER_SIZE, ERASER_SIZE);
+    }
+    private void drawErase(Erase e) {
+        List<Double> pts = e.getPoints();
+        if (pts.size() < 4) return;
+        gc.beginPath();
+        gc.moveTo(pts.get(0), pts.get(1));
+        for (int i = 2; i < pts.size(); i += 2) {
+            eraseAt(pts.get(i), pts.get(i + 1));
+        }
+        gc.stroke();
+    }
+    private void redraw() {
+        gc.setFill(Color.WHITE);
+        gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-            // центр и внешний радиус (по меньшей стороне прямоугольника)
-            double cx = rx + rw / 2.0;
-            double cy = ry + rh / 2.0;
-            double outerRadius = Math.min(rw, rh) / 2.0;
-            // внутренний радиус задаём как долю внешнего (0.4-0.5 обычно хорошо)
-            double innerRadius = outerRadius * 0.5;
-
-            // количество вершин: 5-конечная звезда -> 10 точек чередующихся
-            int points = 10;
-            double[] xs = new double[points];
-            double[] ys = new double[points];
-
-            // смещение угла так, чтобы один луч смотрел вверх (можно изменить)
-            double startAngle = -Math.PI / 2.0; // вверх
-            for (int i = 0; i < points; i++) {
-                double angle = startAngle + i * (2 * Math.PI / points);
-                double r = (i % 2 == 0) ? outerRadius : innerRadius;
-                xs[i] = cx + Math.cos(angle) * r;
-                ys[i] = cy + Math.sin(angle) * r;
+        for (Drawable d : model) {
+            if (d instanceof Stroke) {
+                Stroke stroke = (Stroke) d;
+                drawStroke(stroke);
             }
-
-            // рисуем замкнутый контур
-            gc.strokePolygon(xs, ys, points);
-
-        }
-	}
-
-    private void onMouseReleased(MouseEvent e) {
-        if (e.getButton() != MouseButton.PRIMARY) return;
-        double x = e.getX();
-        double y = e.getY();
-
-        if (currentTool == Tool.CURVE) {
-        	unManeger.pushUndo(canvas);
-        	//pushUndo();
-        	unManeger.clearRedoStack();
-            //redoStack.clear();
-            tempSnapshot = null;
-        }
-        else if (currentTool == Tool.LINE) {
-            restoreSnapshot(tempSnapshot);
-            // толщина линии и цвет из кнопок
-            gc.setStroke(colorPicker.getValue());
-            gc.setLineWidth(sizeSlider.getValue());
-            //gc.setStroke(Color.BLACK);
-            //gc.setLineWidth(2);
-            gc.strokeLine(startX, startY, x, y);
-            unManeger.pushUndo(canvas);
-            //pushUndo();
-            unManeger.clearRedoStack();
-            //redoStack.clear();
-            tempSnapshot = null;
-        } else if (currentTool == Tool.RECT) {
-            restoreSnapshot(tempSnapshot);
-            // толщина линии и цвет из кнопок
-            gc.setStroke(colorPicker.getValue());
-            gc.setLineWidth(sizeSlider.getValue());
-            //gc.setStroke(Color.BLACK);
-            //gc.setLineWidth(2);
-            double rx = Math.min(startX, x);
-            double ry = Math.min(startY, y);
-            double rw = Math.abs(x - startX);
-            double rh = Math.abs(y - startY);
-            gc.strokeRect(rx, ry, rw, rh);
-            unManeger.pushUndo(canvas);
-            //pushUndo();
-            unManeger.clearRedoStack();
-            //redoStack.clear();
-            tempSnapshot = null;
-        }else if (currentTool == Tool.ROT_RECT) {
-        	drawPreviewRect(startX, startY, x, y);
-        	unManeger.pushUndo(canvas);
-            //pushUndo();
-        	unManeger.clearRedoStack();
-            //redoStack.clear();
-            tempSnapshot = null;
-        }else if (currentTool == Tool.CIRCLE) {
-            restoreSnapshot(tempSnapshot);
-            // толщина линии и цвет из кнопок
-            gc.setStroke(colorPicker.getValue());
-            gc.setLineWidth(sizeSlider.getValue());
-            //gc.setStroke(Color.BLACK);
-            //gc.setLineWidth(2);
-            double rx = Math.min(startX, x);
-            double ry = Math.min(startY, y);
-            double rw = Math.abs(x - startX);
-            double rh = Math.abs(y - startY);
-            gc.strokeOval(rx, ry, rw, rh);
-            unManeger.pushUndo(canvas);
-            //pushUndo();
-            unManeger.clearRedoStack();
-            //redoStack.clear();
-            tempSnapshot = null;
-        }else if (currentTool == Tool.STAR) {
-        	// вынести в отдельный метод
-            restoreSnapshot(tempSnapshot);
-            // толщина линии и цвет из кнопок
-            gc.setStroke(colorPicker.getValue());
-            gc.setLineWidth(sizeSlider.getValue());
-         // startX, startY - точка начала (например первый клик), x, y - текущая позиция мыши
-            // используем ограничивающий прямоугольник как у прямоугольника
-            double rx = Math.min(startX, x);
-            double ry = Math.min(startY, y);
-            double rw = Math.abs(x - startX);
-            double rh = Math.abs(y - startY);
-
-            // центр и внешний радиус (по меньшей стороне прямоугольника)
-            double cx = rx + rw / 2.0;
-            double cy = ry + rh / 2.0;
-            double outerRadius = Math.min(rw, rh) / 2.0;
-            // внутренний радиус задаём как долю внешнего (0.4-0.5 обычно хорошо)
-            double innerRadius = outerRadius * 0.5;
-
-            // количество вершин: 5-конечная звезда -> 10 точек чередующихся
-            int points = 10;
-            double[] xs = new double[points];
-            double[] ys = new double[points];
-
-            // смещение угла так, чтобы один луч смотрел вверх (можно изменить)
-            double startAngle = -Math.PI / 2.0; // вверх
-            for (int i = 0; i < points; i++) {
-                double angle = startAngle + i * (2 * Math.PI / points);
-                double r = (i % 2 == 0) ? outerRadius : innerRadius;
-                xs[i] = cx + Math.cos(angle) * r;
-                ys[i] = cy + Math.sin(angle) * r;
+            else if (d instanceof Line) {
+                Line line = (Line) d;
+                drawLine(line);
             }
-
-            // рисуем замкнутый контур
-            gc.strokePolygon(xs, ys, points);
-            unManeger.pushUndo(canvas);
-            //pushUndo();
-            unManeger.clearRedoStack();
-            //redoStack.clear();
-            tempSnapshot = null;
-
-        }else if (currentTool == Tool.ERASER) {
-            // уже сделали pushUndo() при press
+            else if (d instanceof Erase) {
+                Erase eraser = (Erase) d;
+                drawErase(eraser);
+            }
+            else if (d instanceof Circle) {
+                Circle circle = (Circle) d;
+                drawCircle(circle);
+            }
+            else if (d instanceof Rect) {
+                Rect rect =(Rect) d;
+                drawRect(rect);
+            }
+            else if (d instanceof Star) {
+                Star star =(Star) d;
+                drawStar(star);
+            }
+            else if (d instanceof RotRect) {
+                RotRect rotRect =(RotRect) d;
+                drawRotRect(rotRect);
+            }
         }
+
     }
     // переместить в отдельный класс
     // Возвращает массив: {centerX, centerY, width, height, angleRad}
@@ -598,9 +956,9 @@ public class Main extends Application {
 //            // простая обрезка: удаляем самое старое (в данном простом примере не реализовано удаление нижнего элемента)
 //        }
 //    }
-    private void eraseAt(double x, double y) {
-        gc.clearRect(x - ERASER_SIZE / 2, y - ERASER_SIZE / 2, ERASER_SIZE, ERASER_SIZE);
-    }
+//    private void eraseAt(double x, double y) {
+//        gc.clearRect(x - ERASER_SIZE / 2, y - ERASER_SIZE / 2, ERASER_SIZE, ERASER_SIZE);
+//    }
     
     private void restoreSnapshot(WritableImage snapshot) {
         if (snapshot != null) {
