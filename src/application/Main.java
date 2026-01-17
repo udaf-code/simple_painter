@@ -78,6 +78,8 @@ public class Main extends Application {
     private Rect currentRect = null;
     private Star currentStar = null;
     private RotRect currentRotRect = null;
+    
+    private boolean CommandUndoManager = false;
 
     /**
      *
@@ -225,8 +227,24 @@ public class Main extends Application {
 //        undoBtn.setOnAction(e -> undo());
 //        redoBtn.setOnAction(e -> redo());
         
-        undoBtn.setOnAction(e -> unManeger.undo(canvas,gc));
-        redoBtn.setOnAction(e -> unManeger.redo(canvas,gc));
+        
+        if (CommandUndoManager)  {
+	        undoBtn.setOnAction(e -> {
+	            undoManager.undo();
+	            redraw();
+	            //updateButtons(undoBtn, redoBtn);
+	        });
+	        redoBtn.setOnAction(e -> {
+	            undoManager.redo();
+	            redraw();
+	            //updateButtons(undoBtn, redoBtn);
+	        });
+        }
+        else {
+        	undoBtn.setOnAction(e -> unManeger.undo(canvas,gc));
+        	redoBtn.setOnAction(e -> unManeger.redo(canvas,gc));
+        	
+        }
         clearBtn.setOnAction(e -> {
         	unManeger.pushUndo(canvas);
             //pushUndo();
@@ -308,32 +326,34 @@ public class Main extends Application {
     private void onMousePressed(MouseEvent e) {
     	if (e.getButton() != MouseButton.PRIMARY) return;
     	if (currentTool == Tool.CURVE) {
-    		currentStroke = new Stroke(Color.BLACK, 2.0);
+    		currentStroke = new Stroke(colorPicker.getValue(), sizeSlider.getValue());
             currentStroke.addPoint(e.getX(), e.getY());
     	}
-    	else if (currentTool == Tool.Line) {
-    		currentLine = new Line(Color.BLACK, 2.0);
+    	else if (currentTool == Tool.LINE) {
+    		currentLine = new Line(colorPicker.getValue(), sizeSlider.getValue());
     		currentLine.addPoint(e.getX(), e.getY());
+    		
+    		tempSnapshot = canvas.snapshot(null, null);
     	}
-    	else if (currentTool == Tool.Erase) {
+    	else if (currentTool == Tool.ERASER) {
     		currentErase = new Erase();
     		currentErase.addPoint(e.getX(), e.getY());
     		//eraseAt(e.getX(), e.getY());
     	}
-    	else if (currentTool == Tool.Circle) {
-    		currentCircle = new Circle(Color.BLACK, 2.0);
+    	else if (currentTool == Tool.CIRCLE) {
+    		currentCircle = new Circle(colorPicker.getValue(), sizeSlider.getValue());
     		currentCircle.addPoint(e.getX(), e.getY());
     	}
-    	else if (currentTool == Tool.Rect) {
-    		currentRect = new Rect(Color.BLACK, 2.0);
+    	else if (currentTool == Tool.RECT) {
+    		currentRect = new Rect(colorPicker.getValue(), sizeSlider.getValue());
     		currentRect.addPoint(e.getX(), e.getY());
     	}
-    	else if (currentTool == Tool.Star) {
-    		currentStar = new Star(Color.BLACK, 2.0);
+    	else if (currentTool == Tool.STAR) {
+    		currentStar = new Star(colorPicker.getValue(), sizeSlider.getValue());
     		currentStar.addPoint(e.getX(), e.getY());
     	}
-    	else if (currentTool == Tool.RotRect) {
-    		currentRotRect = new RotRect(Color.BLACK, 2.0);
+    	else if (currentTool == Tool.ROT_RECT) {
+    		currentRotRect = new RotRect(colorPicker.getValue(), sizeSlider.getValue());
     		currentRotRect.addPoint(e.getX(), e.getY());
     	}
     }
@@ -346,14 +366,14 @@ public class Main extends Application {
                 drawStroke(currentStroke);
             }
     	}
-		else if (currentTool == Tool.Line) {
+		else if (currentTool == Tool.LINE) {
 			if (currentLine != null) {
 				currentLine.addPoint(e.getX(), e.getY());
 				redraw();
 				drawLine(currentLine);
 			}
 		}
-		else if (currentTool == Tool.Erase) {
+		else if (currentTool == Tool.ERASER) {
 			if (currentErase != null) {
 				currentErase.addPoint(e.getX(), e.getY());
 				redraw();
@@ -361,28 +381,28 @@ public class Main extends Application {
 			//eraseAt(e.getX(), e.getY());  		
 			}
 		}
-		else if (currentTool == Tool.Circle) {
+		else if (currentTool == Tool.CIRCLE) {
 			if (currentCircle != null) {
 				currentCircle.addPoint(e.getX(), e.getY());
 				redraw();
 				drawCircle(currentCircle);		
 			}
 		}
-		else if (currentTool == Tool.Rect) {
+		else if (currentTool == Tool.RECT) {
 			if (currentRect != null) {
 				currentRect.addPoint(e.getX(), e.getY());
 				redraw();
 				drawRect(currentRect);		
 			}    		
 		}
-		else if (currentTool == Tool.Star) {
+		else if (currentTool == Tool.STAR) {
 			if (currentStar != null) {
 				currentStar.addPoint(e.getX(), e.getY());
 				redraw();
 				drawStar(currentStar); 	
 			}
 		}
-		else if (currentTool == Tool.RotRect) {
+		else if (currentTool == Tool.ROT_RECT) {
 			if (currentRotRect != null) {
 				currentRotRect.addPoint(e.getX(), e.getY());
 				redraw();
@@ -392,72 +412,93 @@ public class Main extends Application {
     }
     private void onMouseReleased(MouseEvent e) {
     	if (e.getButton() != MouseButton.PRIMARY) return;
-    	if (currentTool == Tool.Stroke) {
+    	if (currentTool == Tool.CURVE) {
             if (currentStroke != null) {
                 currentStroke.addPoint(e.getX(), e.getY());
                 // Создаём команду и выполняем её через UndoManager
-                DrawStrokeCommand cmd = new DrawStrokeCommand(model, currentStroke);
-                undoManager.doCommand(cmd);
+                if (CommandUndoManager) {
+	                DrawStrokeCommand cmd = new DrawStrokeCommand(model, currentStroke);
+	                undoManager.doCommand(cmd);
+                }
                 currentStroke = null;
                 redraw();
-                updateButtons(undoBtn, redoBtn);
+                //updateButtons(undoBtn, redoBtn);
             }
     	}
-    	else if (currentTool == Tool.Line) {
+    	else if (currentTool == Tool.LINE) {
     		if (currentLine != null) {
 				currentLine.addPoint(e.getX(), e.getY());
 				// Создаём команду и выполняем её через UndoManager
-				DrawLineCommand cmd = new DrawLineCommand(model, currentLine);
-                undoManager.doCommand(cmd);
+				//if (CommandUndoManager) {
+					DrawLineCommand cmd = new DrawLineCommand(model, currentLine);
+	                undoManager.doCommand(cmd);
+				//}
                 currentLine = null;
 				redraw();
-				updateButtons(undoBtn, redoBtn);
+				
+				//restoreSnapshot(tempSnapshot);
+				//updateButtons(undoBtn, redoBtn);
 				//drawLine(currentLine);
+				unManeger.pushUndo(canvas);
+	            //pushUndo();
+	            unManeger.clearRedoStack();
+	            //redoStack.clear();
+	            tempSnapshot = null;
 			}
 		}
-    	else if (currentTool == Tool.Erase) {
+    	else if (currentTool == Tool.ERASER) {
     		if (currentErase != null) {
-    			DrawEraseCommand cmd = new DrawEraseCommand(model, currentErase);
-    			undoManager.doCommand(cmd);
+    			if (CommandUndoManager) {
+	    			DrawEraseCommand cmd = new DrawEraseCommand(model, currentErase);
+	    			undoManager.doCommand(cmd);
+    			}
     			currentErase = null;
     			redraw();
-				updateButtons(undoBtn, redoBtn);
+				//updateButtons(undoBtn, redoBtn);
     		}
     	}
-    	else if (currentTool == Tool.Circle) {
+    	else if (currentTool == Tool.CIRCLE) {
     		if (currentCircle != null) {
-    			DrawCircleCommand cmd = new DrawCircleCommand(model, currentCircle);
-    			undoManager.doCommand(cmd);
+    			if (CommandUndoManager) {
+	    			DrawCircleCommand cmd = new DrawCircleCommand(model, currentCircle);
+	    			undoManager.doCommand(cmd);
+    			}
     			currentCircle = null;
     			redraw();
-				updateButtons(undoBtn, redoBtn);
+				//updateButtons(undoBtn, redoBtn);
     		}
     	}
-		else if (currentTool == Tool.Rect) {
+		else if (currentTool == Tool.RECT) {
 			if (currentRect != null) {
-    			DrawRectCommand cmd = new DrawRectCommand(model, currentRect);
-    			undoManager.doCommand(cmd);
+				if (CommandUndoManager) {
+	    			DrawRectCommand cmd = new DrawRectCommand(model, currentRect);
+	    			undoManager.doCommand(cmd);
+				}
     			currentRect = null;
     			redraw();
-				updateButtons(undoBtn, redoBtn);
+				//updateButtons(undoBtn, redoBtn);
     		}   		
 		}
-		else if (currentTool == Tool.Star) {
+		else if (currentTool == Tool.STAR) {
 			if (currentStar != null) {
-    			DrawStarCommand cmd = new DrawStarCommand(model, currentStar);
-    			undoManager.doCommand(cmd);
+				if (CommandUndoManager) {
+	    			DrawStarCommand cmd = new DrawStarCommand(model, currentStar);
+	    			undoManager.doCommand(cmd);
+				}
     			currentStar = null;
     			redraw();
-				updateButtons(undoBtn, redoBtn);
+				//updateButtons(undoBtn, redoBtn);
     		}     		
 		}
-		else if (currentTool == Tool.RotRect) {
+		else if (currentTool == Tool.ROT_RECT) {
 			if (currentRotRect != null) {
-    			DrawRotRectCommand cmd = new DrawRotRectCommand(model, currentRotRect);
-    			undoManager.doCommand(cmd);
+				if (CommandUndoManager) {
+	    			DrawRotRectCommand cmd = new DrawRotRectCommand(model, currentRotRect);
+	    			undoManager.doCommand(cmd);
+				}
     			currentRotRect = null;
     			redraw();
-				updateButtons(undoBtn, redoBtn);
+				//updateButtons(undoBtn, redoBtn);
     		} 
     	}
     }
