@@ -328,6 +328,8 @@ public class Main extends Application {
     	if (currentTool == Tool.CURVE) {
     		currentStroke = new Stroke(colorPicker.getValue(), sizeSlider.getValue());
             currentStroke.addPoint(e.getX(), e.getY());
+            
+            tempSnapshot = canvas.snapshot(null, null);
     	}
     	else if (currentTool == Tool.LINE) {
     		currentLine = new Line(colorPicker.getValue(), sizeSlider.getValue());
@@ -339,22 +341,27 @@ public class Main extends Application {
     		currentErase = new Erase();
     		currentErase.addPoint(e.getX(), e.getY());
     		//eraseAt(e.getX(), e.getY());
+    		tempSnapshot = canvas.snapshot(null, null);
     	}
     	else if (currentTool == Tool.CIRCLE) {
     		currentCircle = new Circle(colorPicker.getValue(), sizeSlider.getValue());
     		currentCircle.addPoint(e.getX(), e.getY());
+    		tempSnapshot = canvas.snapshot(null, null);
     	}
     	else if (currentTool == Tool.RECT) {
     		currentRect = new Rect(colorPicker.getValue(), sizeSlider.getValue());
     		currentRect.addPoint(e.getX(), e.getY());
+    		tempSnapshot = canvas.snapshot(null, null);
     	}
     	else if (currentTool == Tool.STAR) {
     		currentStar = new Star(colorPicker.getValue(), sizeSlider.getValue());
     		currentStar.addPoint(e.getX(), e.getY());
+    		tempSnapshot = canvas.snapshot(null, null);
     	}
     	else if (currentTool == Tool.ROT_RECT) {
     		currentRotRect = new RotRect(colorPicker.getValue(), sizeSlider.getValue());
     		currentRotRect.addPoint(e.getX(), e.getY());
+    		tempSnapshot = canvas.snapshot(null, null);
     	}
     }
     private void onMouseDragged(MouseEvent e) {
@@ -362,21 +369,30 @@ public class Main extends Application {
     	if (currentTool == Tool.CURVE) {
             if (currentStroke != null) {
                 currentStroke.addPoint(e.getX(), e.getY());
-                redraw(); // перерисовываем всё модель + текущий черновик
+                if (CommandUndoManager) {
+                	redraw(); // перерисовываем всё модель + текущий черновик
+                }
+                else restoreSnapshot(tempSnapshot);
                 drawStroke(currentStroke);
             }
     	}
 		else if (currentTool == Tool.LINE) {
 			if (currentLine != null) {
 				currentLine.addPoint(e.getX(), e.getY());
-				redraw();
+				if (CommandUndoManager) {
+					redraw();
+				}
+				else restoreSnapshot(tempSnapshot);
 				drawLine(currentLine);
 			}
 		}
 		else if (currentTool == Tool.ERASER) {
 			if (currentErase != null) {
 				currentErase.addPoint(e.getX(), e.getY());
-				redraw();
+				if (CommandUndoManager) {
+					redraw();
+				}
+				else restoreSnapshot(tempSnapshot);
 				drawErase(currentErase);
 			//eraseAt(e.getX(), e.getY());  		
 			}
@@ -384,28 +400,40 @@ public class Main extends Application {
 		else if (currentTool == Tool.CIRCLE) {
 			if (currentCircle != null) {
 				currentCircle.addPoint(e.getX(), e.getY());
-				redraw();
+				if (CommandUndoManager) {
+					redraw();
+				}
+				else restoreSnapshot(tempSnapshot);
 				drawCircle(currentCircle);		
 			}
 		}
 		else if (currentTool == Tool.RECT) {
 			if (currentRect != null) {
 				currentRect.addPoint(e.getX(), e.getY());
-				redraw();
+				if (CommandUndoManager) {
+					redraw();
+				}
+				else restoreSnapshot(tempSnapshot);
 				drawRect(currentRect);		
 			}    		
 		}
 		else if (currentTool == Tool.STAR) {
 			if (currentStar != null) {
 				currentStar.addPoint(e.getX(), e.getY());
-				redraw();
+				if (CommandUndoManager) {
+					redraw();
+				}
+				else restoreSnapshot(tempSnapshot);
 				drawStar(currentStar); 	
 			}
 		}
 		else if (currentTool == Tool.ROT_RECT) {
 			if (currentRotRect != null) {
 				currentRotRect.addPoint(e.getX(), e.getY());
-				redraw();
+				if (CommandUndoManager) {
+					redraw();
+				}
+				else restoreSnapshot(tempSnapshot);
 				drawRotRect(currentRotRect); 	
 			}
     	}
@@ -421,29 +449,42 @@ public class Main extends Application {
 	                undoManager.doCommand(cmd);
                 }
                 currentStroke = null;
-                redraw();
+                if (CommandUndoManager) {
+                	redraw();
+                }
                 //updateButtons(undoBtn, redoBtn);
+                else {
+					unManeger.pushUndo(canvas);
+		            //pushUndo();
+		            unManeger.clearRedoStack();
+		            //redoStack.clear();
+		            tempSnapshot = null;
+                }
             }
     	}
     	else if (currentTool == Tool.LINE) {
     		if (currentLine != null) {
 				currentLine.addPoint(e.getX(), e.getY());
 				// Создаём команду и выполняем её через UndoManager
-				//if (CommandUndoManager) {
+				if (CommandUndoManager) {
 					DrawLineCommand cmd = new DrawLineCommand(model, currentLine);
-	                undoManager.doCommand(cmd);
-				//}
+	               undoManager.doCommand(cmd);
+				}
+				drawLine(currentLine);
                 currentLine = null;
-				redraw();
-				
+                if (CommandUndoManager) {
+                	redraw();
+                }
 				//restoreSnapshot(tempSnapshot);
 				//updateButtons(undoBtn, redoBtn);
 				//drawLine(currentLine);
-				unManeger.pushUndo(canvas);
-	            //pushUndo();
-	            unManeger.clearRedoStack();
-	            //redoStack.clear();
-	            tempSnapshot = null;
+                else {
+					unManeger.pushUndo(canvas);
+		            //pushUndo();
+		            unManeger.clearRedoStack();
+		            //redoStack.clear();
+		            tempSnapshot = null;
+                }
 			}
 		}
     	else if (currentTool == Tool.ERASER) {
@@ -453,7 +494,16 @@ public class Main extends Application {
 	    			undoManager.doCommand(cmd);
     			}
     			currentErase = null;
-    			redraw();
+    			if (CommandUndoManager) {
+                	redraw();
+                }
+                else {
+					unManeger.pushUndo(canvas);
+		            //pushUndo();
+		            unManeger.clearRedoStack();
+		            //redoStack.clear();
+		            tempSnapshot = null;
+                }
 				//updateButtons(undoBtn, redoBtn);
     		}
     	}
@@ -464,7 +514,16 @@ public class Main extends Application {
 	    			undoManager.doCommand(cmd);
     			}
     			currentCircle = null;
-    			redraw();
+    			if (CommandUndoManager) {
+                	redraw();
+                }
+                else {
+					unManeger.pushUndo(canvas);
+		            //pushUndo();
+		            unManeger.clearRedoStack();
+		            //redoStack.clear();
+		            tempSnapshot = null;
+                }
 				//updateButtons(undoBtn, redoBtn);
     		}
     	}
@@ -475,7 +534,16 @@ public class Main extends Application {
 	    			undoManager.doCommand(cmd);
 				}
     			currentRect = null;
-    			redraw();
+    			if (CommandUndoManager) {
+                	redraw();
+                }
+                else {
+					unManeger.pushUndo(canvas);
+		            //pushUndo();
+		            unManeger.clearRedoStack();
+		            //redoStack.clear();
+		            tempSnapshot = null;
+                }
 				//updateButtons(undoBtn, redoBtn);
     		}   		
 		}
@@ -486,7 +554,16 @@ public class Main extends Application {
 	    			undoManager.doCommand(cmd);
 				}
     			currentStar = null;
-    			redraw();
+    			if (CommandUndoManager) {
+                	redraw();
+                }
+                else {
+					unManeger.pushUndo(canvas);
+		            //pushUndo();
+		            unManeger.clearRedoStack();
+		            //redoStack.clear();
+		            tempSnapshot = null;
+                }
 				//updateButtons(undoBtn, redoBtn);
     		}     		
 		}
@@ -497,7 +574,16 @@ public class Main extends Application {
 	    			undoManager.doCommand(cmd);
 				}
     			currentRotRect = null;
-    			redraw();
+    			if (CommandUndoManager) {
+                	redraw();
+                }
+                else {
+					unManeger.pushUndo(canvas);
+		            //pushUndo();
+		            unManeger.clearRedoStack();
+		            //redoStack.clear();
+		            tempSnapshot = null;
+                }
 				//updateButtons(undoBtn, redoBtn);
     		} 
     	}

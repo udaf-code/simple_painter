@@ -32,6 +32,7 @@ public class UndoManagerSnap {
         redoStack.push(current);
 
         WritableImage prev = undoStack.pop();
+        System.out.println(undoStack);
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         gc.drawImage(prev, 0, 0);
 	}
