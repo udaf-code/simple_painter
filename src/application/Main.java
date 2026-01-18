@@ -57,10 +57,6 @@ public class Main extends Application {
     private Canvas canvas;
     private GraphicsContext gc;
     private final List<Drawable> model = new ArrayList<>();
-    
-
-    //private final Deque<WritableImage> undoStack = new ArrayDeque<>();
-    //private final Deque<WritableImage> redoStack = new ArrayDeque<>();
 
     private WritableImage tempSnapshot = null;
     private final double ERASER_SIZE = 16;
@@ -85,12 +81,8 @@ public class Main extends Application {
     private Button undoBtn;
     private Button redoBtn;
 
-    /**
-     *
-     */
     @Override
     public void start(Stage stage) {
-    	//unManeger = 
     	// проверяем файл data.json
     	File file = new File("data.json");
     	if (!file.exists()){
@@ -103,7 +95,7 @@ public class Main extends Application {
             File out = new File("data.json");
             try {
                 mapper.writerWithDefaultPrettyPrinter().writeValue(out, data);
-                System.out.println("Записано в " + out.getAbsolutePath());
+                //System.out.println("Записано в " + out.getAbsolutePath());
                 CommandUndoManager = false;
             } catch (IOException e) {
                 e.printStackTrace();
@@ -117,7 +109,7 @@ public class Main extends Application {
     			ObjectMapper mapper = new ObjectMapper();
                 Map<String, Object> data2 = mapper.readValue(in, new TypeReference<Map<String, Object>>() {});
                 String name = (String) data2.get("type");
-                System.out.println(name);
+                //System.out.println(name);
                 if (name.equals("Shapshots"))CommandUndoManager = false;
                 else CommandUndoManager = true;
                 
@@ -149,28 +141,6 @@ public class Main extends Application {
         sizeSlider = new Slider(1, 30, 3);
         Button clearBtn = new Button("Очистить");
 
-        //clearBtn.setOnAction(e -> clearCanvas(gc, canvas));
-
-//        canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, e -> {
-//            lastX = e.getX();
-//            lastY = e.getY();
-//            gc.setStroke(colorPicker.getValue());
-//            gc.setLineWidth(sizeSlider.getValue());
-//            gc.beginPath();
-//            gc.moveTo(lastX, lastY);
-//            gc.stroke();
-//        });
-//
-//        canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, e -> {
-//            double x = e.getX();
-//            double y = e.getY();
-//            gc.setStroke(colorPicker.getValue());
-//            gc.setLineWidth(sizeSlider.getValue());
-//            gc.lineTo(x, y);
-//            gc.stroke();
-//            lastX = x;
-//            lastY = y;
-//        });
         VBox vbox = new VBox(8);
 
         HBox tools = new HBox(8, colorPicker, sizeSlider, clearBtn);
@@ -212,14 +182,6 @@ public class Main extends Application {
         stage.setTitle("Простое рисование");
         stage.setScene(scene);
         stage.show();
-        
-//        colorPicker.setOnAction(e -> {
-//        	currentTool = Tool.SIMPLE;
-//        	});
-//        sizeSlider.setOnMouseReleased(e -> {
-//        	currentTool = Tool.SIMPLE;
-//        	});
-
         curveBtn.setOnAction(e -> currentTool = Tool.CURVE);
         lineBtn.setOnAction(e -> currentTool = Tool.LINE);
         rectBtn.setOnAction(e -> currentTool = Tool.RECT);
@@ -230,22 +192,15 @@ public class Main extends Application {
 
         canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, this::onMousePressed);
         canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, this::onMouseDragged);
-        canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, this::onMouseReleased);
-
-//        undoBtn.setOnAction(e -> undo());
-//        redoBtn.setOnAction(e -> redo());
-        
-        
+        canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, this::onMouseReleased);  
         if (CommandUndoManager)  {
 	        undoBtn.setOnAction(e -> {
 	            undoManager.undo();
 	            redraw();
-	            //updateButtons(undoBtn, redoBtn);
 	        });
 	        redoBtn.setOnAction(e -> {
 	            undoManager.redo();
 	            redraw();
-	            //updateButtons(undoBtn, redoBtn);
 	        });
         }
         else {
@@ -255,11 +210,9 @@ public class Main extends Application {
         }
         clearBtn.setOnAction(e -> {
         	unManeger.pushUndo(canvas);
-            //pushUndo();
             clearCanvas();
             // исправить все редостеки
             unManeger.clearRedoStack();
-            //redoStack.clear();
             unManeger.clearStacks();
             undoManager.clearStacks();
         });
@@ -267,7 +220,6 @@ public class Main extends Application {
         saveBtn.setOnAction(e -> saveToFile(stage));
         loadBtn.setOnAction(e -> loadFromFile(stage));
         unManeger.pushUndo(canvas);
-        //pushUndo();
         // selection manager
         SelectionManager sel = new SelectionManager();
         // регистрируем контролы
@@ -297,7 +249,7 @@ public class Main extends Application {
 			ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> data2 = mapper.readValue(in, new TypeReference<Map<String, Object>>() {});
             name = (String) data2.get("type");
-            System.out.println(name);
+            //System.out.println(name);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -306,9 +258,7 @@ public class Main extends Application {
         choiceBox.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.equals(oldVal)) 
             {
-                // записать newVal в файл (в отдельном потоке!)
-            	
-            	System.out.println(newVal);
+            	//System.out.println(newVal);
             	// создаем
         		ObjectMapper mapper = new ObjectMapper();
                 Map<String, Object> data = Map.of(
@@ -323,10 +273,8 @@ public class Main extends Application {
                 	clearCanvas(gc,canvas);
                 	if (newVal.equals("Shapshots"))CommandUndoManager = false;
                     else CommandUndoManager = true;
-                	// перезаписать кнопки undo и redo
-                	
                     mapper.writerWithDefaultPrettyPrinter().writeValue(out, data);
-                    System.out.println("Записано в " + out.getAbsolutePath());
+                    //System.out.println("Записано в " + out.getAbsolutePath());
                     if (CommandUndoManager)  {
             	        undoBtn.setOnAction(e -> {
             	            undoManager.undo();
@@ -342,6 +290,7 @@ public class Main extends Application {
                     else {
                     	tempSnapshot = null;
                     	tempSnapshot = canvas.snapshot(null, null);
+                    	unManeger.pushUndo(canvas);
                     	undoBtn.setOnAction(e -> unManeger.undo(canvas,gc));
                     	redoBtn.setOnAction(e -> unManeger.redo(canvas,gc));
                     	
@@ -492,9 +441,7 @@ public class Main extends Application {
                 //updateButtons(undoBtn, redoBtn);
                 else {
 					unManeger.pushUndo(canvas);
-		            //pushUndo();
 		            unManeger.clearRedoStack();
-		            //redoStack.clear();
 		            tempSnapshot = null;
                 }
             }
@@ -512,14 +459,9 @@ public class Main extends Application {
                 if (CommandUndoManager) {
                 	redraw();
                 }
-				//restoreSnapshot(tempSnapshot);
-				//updateButtons(undoBtn, redoBtn);
-				//drawLine(currentLine);
                 else {
 					unManeger.pushUndo(canvas);
-		            //pushUndo();
 		            unManeger.clearRedoStack();
-		            //redoStack.clear();
 		            tempSnapshot = null;
                 }
 			}
@@ -536,9 +478,7 @@ public class Main extends Application {
                 }
                 else {
 					unManeger.pushUndo(canvas);
-		            //pushUndo();
 		            unManeger.clearRedoStack();
-		            //redoStack.clear();
 		            tempSnapshot = null;
                 }
 				//updateButtons(undoBtn, redoBtn);
@@ -556,9 +496,7 @@ public class Main extends Application {
                 }
                 else {
 					unManeger.pushUndo(canvas);
-		            //pushUndo();
 		            unManeger.clearRedoStack();
-		            //redoStack.clear();
 		            tempSnapshot = null;
                 }
 				//updateButtons(undoBtn, redoBtn);
@@ -576,9 +514,7 @@ public class Main extends Application {
                 }
                 else {
 					unManeger.pushUndo(canvas);
-		            //pushUndo();
 		            unManeger.clearRedoStack();
-		            //redoStack.clear();
 		            tempSnapshot = null;
                 }
 				//updateButtons(undoBtn, redoBtn);
@@ -596,9 +532,7 @@ public class Main extends Application {
                 }
                 else {
 					unManeger.pushUndo(canvas);
-		            //pushUndo();
 		            unManeger.clearRedoStack();
-		            //redoStack.clear();
 		            tempSnapshot = null;
                 }
 				//updateButtons(undoBtn, redoBtn);
@@ -616,9 +550,7 @@ public class Main extends Application {
                 }
                 else {
 					unManeger.pushUndo(canvas);
-		            //pushUndo();
 		            unManeger.clearRedoStack();
-		            //redoStack.clear();
 		            tempSnapshot = null;
                 }
 				//updateButtons(undoBtn, redoBtn);
@@ -626,242 +558,6 @@ public class Main extends Application {
     	}
     }
     
-    
-//    private void onMousePressed(MouseEvent e) {
-//        if (e.getButton() != MouseButton.PRIMARY) return;
-//        startX = e.getX();
-//        startY = e.getY();
-//        //!!! потом переделать убрать лишнее привести логику к единому типу
-////        lastX = e.getX();
-////        lastY = e.getY();
-//        //
-//        //pushUndo();
-//        System.out.println("мышь");
-//        // простое рисование
-//        if (currentTool == Tool.CURVE) {
-//        	gc.setStroke(colorPicker.getValue());
-//            gc.setLineWidth(sizeSlider.getValue());
-//            gc.beginPath();
-//            gc.moveTo(startX, startY);
-//            //gc.moveTo(lastX, lastY);
-//            gc.stroke();
-//        }
-//        else if (currentTool == Tool.RECT || currentTool == Tool.LINE|| currentTool == Tool.CIRCLE|| currentTool == Tool.STAR|| currentTool == Tool.ROT_RECT) {
-//            tempSnapshot = canvas.snapshot(null, null);
-//        } else if (currentTool == Tool.ERASER) {
-//        	unManeger.pushUndo(canvas);
-//            //pushUndo();
-//        	unManeger.clearRedoStack();
-//            //redoStack.clear();
-//            eraseAt(startX, startY);
-//        }
-//    }
-
-//    private void onMouseDragged(MouseEvent e) {
-//        double x = e.getX();
-//        double y = e.getY();
-//
-//        if (currentTool == Tool.CURVE) {
-//        	gc.setStroke(colorPicker.getValue());
-//            gc.setLineWidth(sizeSlider.getValue());
-//            gc.lineTo(x, y);
-//            gc.stroke();
-////            lastX = x;
-////            lastY = y;
-//            startX = x;
-//            startY = y;
-//        }
-//        else if (currentTool == Tool.ERASER) {
-//            eraseAt(x, y);
-//        } else if (currentTool == Tool.LINE) {
-//            restoreSnapshot(tempSnapshot);
-//            // толщина линии и цвет из кнопок
-//            gc.setStroke(colorPicker.getValue());
-//            gc.setLineWidth(sizeSlider.getValue());
-//            //gc.setStroke(Color.BLACK);
-//            //gc.setLineWidth(2);
-//            gc.strokeLine(startX, startY, x, y);
-//        
-//        } else if (currentTool == Tool.RECT) {
-//            restoreSnapshot(tempSnapshot);
-//            // толщина линии и цвет из кнопок
-//            gc.setStroke(colorPicker.getValue());
-//            gc.setLineWidth(sizeSlider.getValue());
-//            //gc.setStroke(Color.BLACK);
-//            //gc.setLineWidth(2);
-//            double rx = Math.min(startX, x);
-//            double ry = Math.min(startY, y);
-//            double rw = Math.abs(x - startX);
-//            double rh = Math.abs(y - startY);
-//            gc.strokeRect(rx, ry, rw, rh);
-//        }else if (currentTool == Tool.ROT_RECT) {
-//        	drawPreviewRect(startX, startY, x, y);
-//        }else if (currentTool == Tool.CIRCLE) {
-//        
-//            restoreSnapshot(tempSnapshot);
-//            // толщина линии и цвет из кнопок
-//            gc.setStroke(colorPicker.getValue());
-//            gc.setLineWidth(sizeSlider.getValue());
-//            //gc.setStroke(Color.BLACK);
-//            //gc.setLineWidth(2);
-//            double rx = Math.min(startX, x);
-//            double ry = Math.min(startY, y);
-//            double rw = Math.abs(x - startX);
-//            double rh = Math.abs(y - startY);
-//            //gc.strokeRect(rx, ry, rw, rh);
-//            gc.strokeOval(rx, ry, rw, rh);
-//        } else if (currentTool == Tool.STAR) {
-//        	// вынести в отдельный метод
-//            restoreSnapshot(tempSnapshot);
-//            // толщина линии и цвет из кнопок
-//            gc.setStroke(colorPicker.getValue());
-//            gc.setLineWidth(sizeSlider.getValue());
-//         // startX, startY - точка начала (например первый клик), x, y - текущая позиция мыши
-//            // используем ограничивающий прямоугольник как у прямоугольника
-//            double rx = Math.min(startX, x);
-//            double ry = Math.min(startY, y);
-//            double rw = Math.abs(x - startX);
-//            double rh = Math.abs(y - startY);
-//
-//            // центр и внешний радиус (по меньшей стороне прямоугольника)
-//            double cx = rx + rw / 2.0;
-//            double cy = ry + rh / 2.0;
-//            double outerRadius = Math.min(rw, rh) / 2.0;
-//            // внутренний радиус задаём как долю внешнего (0.4-0.5 обычно хорошо)
-//            double innerRadius = outerRadius * 0.5;
-//
-//            // количество вершин: 5-конечная звезда -> 10 точек чередующихся
-//            int points = 10;
-//            double[] xs = new double[points];
-//            double[] ys = new double[points];
-//
-//            // смещение угла так, чтобы один луч смотрел вверх (можно изменить)
-//            double startAngle = -Math.PI / 2.0; // вверх
-//            for (int i = 0; i < points; i++) {
-//                double angle = startAngle + i * (2 * Math.PI / points);
-//                double r = (i % 2 == 0) ? outerRadius : innerRadius;
-//                xs[i] = cx + Math.cos(angle) * r;
-//                ys[i] = cy + Math.sin(angle) * r;
-//            }
-//
-//            // рисуем замкнутый контур
-//            gc.strokePolygon(xs, ys, points);
-//
-//        }
-//	}
-
-//    private void onMouseReleased(MouseEvent e) {
-//        if (e.getButton() != MouseButton.PRIMARY) return;
-//        double x = e.getX();
-//        double y = e.getY();
-//
-//        if (currentTool == Tool.CURVE) {
-//        	unManeger.pushUndo(canvas);
-//        	//pushUndo();
-//        	unManeger.clearRedoStack();
-//            //redoStack.clear();
-//            tempSnapshot = null;
-//        }
-//        else if (currentTool == Tool.LINE) {
-//            restoreSnapshot(tempSnapshot);
-//            // толщина линии и цвет из кнопок
-//            gc.setStroke(colorPicker.getValue());
-//            gc.setLineWidth(sizeSlider.getValue());
-//            //gc.setStroke(Color.BLACK);
-//            //gc.setLineWidth(2);
-//            gc.strokeLine(startX, startY, x, y);
-//            unManeger.pushUndo(canvas);
-//            //pushUndo();
-//            unManeger.clearRedoStack();
-//            //redoStack.clear();
-//            tempSnapshot = null;
-//        } else if (currentTool == Tool.RECT) {
-//            restoreSnapshot(tempSnapshot);
-//            // толщина линии и цвет из кнопок
-//            gc.setStroke(colorPicker.getValue());
-//            gc.setLineWidth(sizeSlider.getValue());
-//            //gc.setStroke(Color.BLACK);
-//            //gc.setLineWidth(2);
-//            double rx = Math.min(startX, x);
-//            double ry = Math.min(startY, y);
-//            double rw = Math.abs(x - startX);
-//            double rh = Math.abs(y - startY);
-//            gc.strokeRect(rx, ry, rw, rh);
-//            unManeger.pushUndo(canvas);
-//            //pushUndo();
-//            unManeger.clearRedoStack();
-//            //redoStack.clear();
-//            tempSnapshot = null;
-//        }else if (currentTool == Tool.ROT_RECT) {
-//        	drawPreviewRect(startX, startY, x, y);
-//        	unManeger.pushUndo(canvas);
-//            //pushUndo();
-//        	unManeger.clearRedoStack();
-//            //redoStack.clear();
-//            tempSnapshot = null;
-//        }else if (currentTool == Tool.CIRCLE) {
-//            restoreSnapshot(tempSnapshot);
-//            // толщина линии и цвет из кнопок
-//            gc.setStroke(colorPicker.getValue());
-//            gc.setLineWidth(sizeSlider.getValue());
-//            //gc.setStroke(Color.BLACK);
-//            //gc.setLineWidth(2);
-//            double rx = Math.min(startX, x);
-//            double ry = Math.min(startY, y);
-//            double rw = Math.abs(x - startX);
-//            double rh = Math.abs(y - startY);
-//            gc.strokeOval(rx, ry, rw, rh);
-//            unManeger.pushUndo(canvas);
-//            //pushUndo();
-//            unManeger.clearRedoStack();
-//            //redoStack.clear();
-//            tempSnapshot = null;
-//        }else if (currentTool == Tool.STAR) {
-//        	// вынести в отдельный метод
-//            restoreSnapshot(tempSnapshot);
-//            // толщина линии и цвет из кнопок
-//            gc.setStroke(colorPicker.getValue());
-//            gc.setLineWidth(sizeSlider.getValue());
-//         // startX, startY - точка начала (например первый клик), x, y - текущая позиция мыши
-//            // используем ограничивающий прямоугольник как у прямоугольника
-//            double rx = Math.min(startX, x);
-//            double ry = Math.min(startY, y);
-//            double rw = Math.abs(x - startX);
-//            double rh = Math.abs(y - startY);
-//
-//            // центр и внешний радиус (по меньшей стороне прямоугольника)
-//            double cx = rx + rw / 2.0;
-//            double cy = ry + rh / 2.0;
-//            double outerRadius = Math.min(rw, rh) / 2.0;
-//            // внутренний радиус задаём как долю внешнего (0.4-0.5 обычно хорошо)
-//            double innerRadius = outerRadius * 0.5;
-//
-//            // количество вершин: 5-конечная звезда -> 10 точек чередующихся
-//            int points = 10;
-//            double[] xs = new double[points];
-//            double[] ys = new double[points];
-//
-//            // смещение угла так, чтобы один луч смотрел вверх (можно изменить)
-//            double startAngle = -Math.PI / 2.0; // вверх
-//            for (int i = 0; i < points; i++) {
-//                double angle = startAngle + i * (2 * Math.PI / points);
-//                double r = (i % 2 == 0) ? outerRadius : innerRadius;
-//                xs[i] = cx + Math.cos(angle) * r;
-//                ys[i] = cy + Math.sin(angle) * r;
-//            }
-//
-//            // рисуем замкнутый контур
-//            gc.strokePolygon(xs, ys, points);
-//            unManeger.pushUndo(canvas);
-//            //pushUndo();
-//            unManeger.clearRedoStack();
-//            //redoStack.clear();
-//            tempSnapshot = null;
-//
-//        }else if (currentTool == Tool.ERASER) {
-//            // уже сделали pushUndo() при press
-//        }
-//    }
     
     private void drawStar(Star s) {
     	if (s == null) return;
@@ -871,13 +567,10 @@ public class Main extends Application {
         gc.setStroke(s.getColor());
         gc.setLineWidth(s.getWidth());
         //gc.beginPath();
-        //gc.moveTo(ptl.get(0), ptl.get(1));
         double rx = Math.min(ptl.get(0), ptl.get(size-2));
         double ry = Math.min(ptl.get(1), ptl.get(size-1));
         double rw = Math.abs(ptl.get(size-2) - ptl.get(0));
         double rh = Math.abs(ptl.get(size-1) - ptl.get(1));
-        //gc.strokeRect(rx, ry, rw, rh);
-        //gc.strokeRect(rx, ry, rw, rh);
      // центр и внешний радиус (по меньшей стороне прямоугольника)
         double cx = rx + rw / 2.0;
         double cy = ry + rh / 2.0;
@@ -963,13 +656,8 @@ public class Main extends Application {
         double ry = Math.min(ptl.get(1), ptl.get(size-1));
         double rw = Math.abs(ptl.get(size-2) - ptl.get(0));
         double rh = Math.abs(ptl.get(size-1) - ptl.get(1));
-        //gc.strokeRect(rx, ry, rw, rh);
         gc.strokeOval(rx, ry, rw, rh);
-//        for (int i = 2; i < ptl.size(); i += 2) {
-//            gc.lineTo(ptl.get(i), ptl.get(i + 1));
-//        }
-        //gc.lineTo(ptl.get(size-2), ptl.get(size-1));
-        //gc.stroke();
+
     }
     
     private void drawLine(Line l) {
@@ -981,9 +669,6 @@ public class Main extends Application {
         gc.setLineWidth(l.getWidth());
         gc.beginPath();
         gc.moveTo(ptl.get(0), ptl.get(1));
-//        for (int i = 2; i < ptl.size(); i += 2) {
-//            gc.lineTo(ptl.get(i), ptl.get(i + 1));
-//        }
         gc.lineTo(ptl.get(size-2), ptl.get(size-1));
         gc.stroke();
     }
@@ -1081,25 +766,6 @@ public class Main extends Application {
         drawRotatedRect(gc, p[0], p[1], p[2], p[3], p[4]);
     }
     
-//    private void undo() {
-//        if (undoStack.isEmpty()) return;
-//        WritableImage current = canvas.snapshot(null, null);
-//        redoStack.push(current);
-//
-//        WritableImage prev = undoStack.pop();
-//        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-//        gc.drawImage(prev, 0, 0);
-//    }
-//
-//    private void redo() {
-//        if (redoStack.isEmpty()) return;
-//        WritableImage current = canvas.snapshot(null, null);
-//        undoStack.push(current);
-//
-//        WritableImage next = redoStack.pop();
-//        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-//        gc.drawImage(next, 0, 0);
-//    }
 
     private void clearCanvas(GraphicsContext gc, Canvas canvas) {
         gc.setFill(Color.WHITE);
@@ -1111,18 +777,7 @@ public class Main extends Application {
         gc.setStroke(Color.BLACK);
         gc.setLineWidth(2);
     }
-//    private void pushUndo() {
-//        WritableImage snap = canvas.snapshot(null, null);
-//        undoStack.push(snap);
-//        System.out.println(undoStack);
-//        // ограничение размера стека (опционально)
-//        if (undoStack.size() > 50) {
-//            // простая обрезка: удаляем самое старое (в данном простом примере не реализовано удаление нижнего элемента)
-//        }
-//    }
-//    private void eraseAt(double x, double y) {
-//        gc.clearRect(x - ERASER_SIZE / 2, y - ERASER_SIZE / 2, ERASER_SIZE, ERASER_SIZE);
-//    }
+
     
     private void restoreSnapshot(WritableImage snapshot) {
         if (snapshot != null) {

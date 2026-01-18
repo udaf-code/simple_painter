@@ -20,7 +20,7 @@ public class UndoManagerSnap {
 	public void pushUndo(Canvas canvas) {
 		WritableImage snap = canvas.snapshot(null, null);
         undoStack.push(snap);
-        System.out.println(undoStack);
+        //System.out.println(undoStack);
         // ограничение размера стека (опционально)
         if (undoStack.size() > 50) {
             // простая обрезка: удаляем самое старое (в данном простом примере не реализовано удаление нижнего элемента)
@@ -32,7 +32,7 @@ public class UndoManagerSnap {
         redoStack.push(current);
 
         WritableImage prev = undoStack.pop();
-        System.out.println(undoStack);
+        //System.out.println(undoStack);
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         gc.drawImage(prev, 0, 0);
 	}
