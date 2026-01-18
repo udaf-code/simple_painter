@@ -49,7 +49,6 @@ import java.util.Map;
 
 
 public class Main extends Application {
-    //private double lastX, lastY;
     
     enum Tool { CURVE, LINE, RECT, ROT_RECT, CIRCLE, STAR, ERASER }
     private Tool currentTool = Tool.CURVE;
