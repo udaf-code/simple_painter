@@ -45,5 +45,9 @@ public class UndoManagerSnap {
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         gc.drawImage(next, 0, 0);
 	}
+	public void clearStacks() {
+		undoStack.clear();
+	    redoStack.clear();
+	}
 	
 }

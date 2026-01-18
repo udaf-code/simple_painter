@@ -12,6 +12,7 @@ import javax.imageio.ImageIO;
 
 import application.Main.Tool;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -69,7 +70,7 @@ public class Main extends Application {
     
     private final UndoManager undoManager = new UndoManager(100);
     
-    private UndoManagerSnap unManeger;
+    private UndoManagerSnap unManeger =new UndoManagerSnap();;
     
     private Stroke currentStroke = null;
     private Line currentLine = null;
@@ -79,14 +80,17 @@ public class Main extends Application {
     private Star currentStar = null;
     private RotRect currentRotRect = null;
     
-    private boolean CommandUndoManager = false;
+    private boolean CommandUndoManager;
+    
+    private Button undoBtn;
+    private Button redoBtn;
 
     /**
      *
      */
     @Override
     public void start(Stage stage) {
-    	unManeger = new UndoManagerSnap();
+    	//unManeger = 
     	// проверяем файл data.json
     	File file = new File("data.json");
     	if (!file.exists()){
@@ -100,6 +104,7 @@ public class Main extends Application {
             try {
                 mapper.writerWithDefaultPrettyPrinter().writeValue(out, data);
                 System.out.println("Записано в " + out.getAbsolutePath());
+                CommandUndoManager = false;
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -113,6 +118,9 @@ public class Main extends Application {
                 Map<String, Object> data2 = mapper.readValue(in, new TypeReference<Map<String, Object>>() {});
                 String name = (String) data2.get("type");
                 System.out.println(name);
+                if (name.equals("Shapshots"))CommandUndoManager = false;
+                else CommandUndoManager = true;
+                
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -141,7 +149,7 @@ public class Main extends Application {
         sizeSlider = new Slider(1, 30, 3);
         Button clearBtn = new Button("Очистить");
 
-        clearBtn.setOnAction(e -> clearCanvas(gc, canvas));
+        //clearBtn.setOnAction(e -> clearCanvas(gc, canvas));
 
 //        canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, e -> {
 //            lastX = e.getX();
@@ -186,8 +194,8 @@ public class Main extends Application {
         eraserBtn.setToggleGroup(tg);
         curveBtn.setSelected(true);
 
-        Button undoBtn = new Button("Undo");
-        Button redoBtn = new Button("Redo");
+        undoBtn = new Button("Undo");
+        redoBtn = new Button("Redo");
         //Button clearBtn = new Button("Clear");
         Button saveBtn = new Button("Save");
         Button loadBtn = new Button("Load");
@@ -252,6 +260,8 @@ public class Main extends Application {
             // исправить все редостеки
             unManeger.clearRedoStack();
             //redoStack.clear();
+            unManeger.clearStacks();
+            undoManager.clearStacks();
         });
 
         saveBtn.setOnAction(e -> saveToFile(stage));
@@ -307,8 +317,35 @@ public class Main extends Application {
 
                 File out = new File("data.json");
                 try {
+                	// очищаем стеки и очищаем холст
+                	undoManager.clearStacks();
+                	unManeger.clearStacks();
+                	clearCanvas(gc,canvas);
+                	if (newVal.equals("Shapshots"))CommandUndoManager = false;
+                    else CommandUndoManager = true;
+                	// перезаписать кнопки undo и redo
+                	
                     mapper.writerWithDefaultPrettyPrinter().writeValue(out, data);
                     System.out.println("Записано в " + out.getAbsolutePath());
+                    if (CommandUndoManager)  {
+            	        undoBtn.setOnAction(e -> {
+            	            undoManager.undo();
+            	            redraw();
+            	            //updateButtons(undoBtn, redoBtn);
+            	        });
+            	        redoBtn.setOnAction(e -> {
+            	            undoManager.redo();
+            	            redraw();
+            	            //updateButtons(undoBtn, redoBtn);
+            	        });
+                    }
+                    else {
+                    	tempSnapshot = null;
+                    	tempSnapshot = canvas.snapshot(null, null);
+                    	undoBtn.setOnAction(e -> unManeger.undo(canvas,gc));
+                    	redoBtn.setOnAction(e -> unManeger.redo(canvas,gc));
+                    	
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

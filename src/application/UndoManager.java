@@ -52,4 +52,10 @@ public class UndoManager {
             undoStack.removeLast();
         }
     }
+
+	public void clearStacks() {
+		// TODO Auto-generated method stub
+		undoStack.clear();
+	    redoStack.clear();
+	}
 }
